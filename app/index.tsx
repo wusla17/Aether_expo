@@ -1,13 +1,13 @@
-// app/index.tsx
 import { getNotes, Note } from '@/utils/database';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { FlatList, Text, TouchableOpacity, View } from 'react-native'; // ✅ Use react-native's Text
-import { FAB } from 'react-native-paper'; // ✅ Keep using FAB from paper if you like
+import { FlatList, StyleSheet, View } from 'react-native';
+import { Appbar, Card, FAB, useTheme } from 'react-native-paper';
 
 export default function Home() {
   const [notes, setNotes] = useState<Note[]>([]);
   const router = useRouter();
+  const theme = useTheme();
 
   useFocusEffect(
     useCallback(() => {
@@ -20,31 +20,43 @@ export default function Home() {
   );
 
   return (
-    <View className="flex-1 bg-black"> {/* Optional background if you're using dark mode */}
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <Appbar.Header>
+        <Appbar.Content title="Notes" />
+      </Appbar.Header>
       <FlatList
         data={notes}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <TouchableOpacity
-            onPress={() => router.push(`/note/${item.id}`)}
-            className="border-b border-gray-700 px-4 py-3"
-          >
-            <Text className="text-white text-xl font-semibold">
-              {item.title}
-            </Text>
-          </TouchableOpacity>
+          <Card style={styles.card} onPress={() => router.push(`/note/${item.id}`)}>
+            <Card.Title title={item.title} />
+          </Card>
         )}
+        contentContainerStyle={styles.listContent}
       />
 
       <FAB
         icon="plus"
-        style={{
-          position: 'absolute',
-          right: 16,
-          bottom: 16,
-        }}
+        style={styles.fab}
         onPress={() => router.push('/note/new')}
       />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  listContent: {
+    padding: 16,
+  },
+  card: {
+    marginBottom: 16,
+  },
+  fab: {
+    position: 'absolute',
+    right: 16,
+    bottom: 16,
+  },
+});

@@ -1,9 +1,8 @@
-/// <reference types="nativewind/types" />
-import { Feather, MaterialIcons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import React from 'react';
-import { FlatList, Text, TouchableOpacity, View } from 'react-native';
-import { useTheme } from 'react-native-paper';
+import { FlatList, StyleSheet, View } from 'react-native';
+import { Appbar, Button, Card, Checkbox, Chip, Text, useTheme } from 'react-native-paper';
 
 const tasks = [
   {
@@ -58,68 +57,39 @@ type Task = (typeof tasks)[0];
 const TaskItem = ({ item }: { item: Task }) => {
   const theme = useTheme();
   return (
-    <View
-      className="mb-3 rounded-xl border border-outline bg-surface p-4"
-    >
-      <View className="flex-row items-center">
-        <TouchableOpacity className="mr-3">
-          {item.done ? (
-            <View
-              className="h-6 w-6 items-center justify-center rounded-md bg-primary"
-            >
-              <MaterialIcons name="check" size={16} color={theme.colors.surface} />
+    <Card style={styles.taskCard}>
+      <Card.Content>
+        <View style={styles.taskHeader}>
+          <Checkbox status={item.done ? 'checked' : 'unchecked'} />
+          <Text style={styles.taskTitle}>{item.title}</Text>
+        </View>
+        <View style={styles.taskDetails}>
+          {item.date && (
+            <View style={styles.detailItem}>
+              <Feather name="calendar" size={14} color={theme.colors.onSurfaceVariant} />
+              <Text style={styles.detailText}>{item.date}</Text>
             </View>
-          ) : (
-            <View
-              className="h-6 w-6 rounded-md border-2 border-outline"
-            />
           )}
-        </TouchableOpacity>
-        <Text className="text-base font-medium text-on-surface">
-          {item.title}
-        </Text>
-      </View>
-      <View className="ml-9 mt-3 flex-row flex-wrap items-center gap-4">
-        {item.date && (
-          <View className="flex-row items-center gap-1.5">
-            <Feather name="calendar" size={14} color={theme.colors.onSurfaceVariant} />
-            <Text className="text-sm text-on-surface-variant">
-              {item.date}
-            </Text>
-          </View>
-        )}
-        {item.comments > 0 && (
-          <View className="flex-row items-center gap-1.5">
-            <Feather name="message-square" size={14} color={theme.colors.onSurfaceVariant} />
-            <Text className="text-sm text-on-surface-variant">
-              {item.comments}
-            </Text>
-          </View>
-        )}
-        {item.attachments > 0 && (
-          <View className="flex-row items-center gap-1.5">
-            <Feather name="paperclip" size={14} color={theme.colors.onSurfaceVariant} />
-            <Text className="text-sm text-on-surface-variant">
-              {item.attachments}
-            </Text>
-          </View>
-        )}
-        {item.tag && (
-          <View
-            className="flex-row items-center rounded-md px-2 py-1"
-            style={{ backgroundColor: `${item.tag.color}20` }}
-          >
-            <View
-              className="mr-1.5 h-2 w-2 rounded-full"
-              style={{ backgroundColor: item.tag.color }}
-            />
-            <Text className="text-xs font-semibold" style={{ color: item.tag.color }}>
+          {item.comments > 0 && (
+            <View style={styles.detailItem}>
+              <Feather name="message-square" size={14} color={theme.colors.onSurfaceVariant} />
+              <Text style={styles.detailText}>{item.comments}</Text>
+            </View>
+          )}
+          {item.attachments > 0 && (
+            <View style={styles.detailItem}>
+              <Feather name="paperclip" size={14} color={theme.colors.onSurfaceVariant} />
+              <Text style={styles.detailText}>{item.attachments}</Text>
+            </View>
+          )}
+          {item.tag && (
+            <Chip icon={() => <View style={[styles.tagIndicator, { backgroundColor: item.tag.color }]} />} style={{ backgroundColor: `${item.tag.color}20` }}>
               {item.tag.name}
-            </Text>
-          </View>
-        )}
-      </View>
-    </View>
+            </Chip>
+          )}
+        </View>
+      </Card.Content>
+    </Card>
   );
 };
 
@@ -127,42 +97,78 @@ export default function TodoScreen() {
   const theme = useTheme();
 
   return (
-    <View
-      className="flex-1 px-5 pt-12"
-      style={{ backgroundColor: theme.colors.background }}
-    >
-      <Text className="mb-6 text-3xl font-bold text-on-background">
-        To-Do
-      </Text>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <Appbar.Header>
+        <Appbar.Content title="To-Do" />
+      </Appbar.Header>
 
-      <View className="mb-6 flex-row gap-3">
+      <View style={styles.actionsContainer}>
         <Link href="/todo/new-task" asChild>
-          <TouchableOpacity
-            className="flex-row items-center gap-2 rounded-lg bg-primary px-4 py-2.5"
-          >
-            <MaterialIcons name="add" size={18} color={theme.colors.onPrimary} />
-            <Text className="text-sm font-semibold text-on-primary">
-              New Task
-            </Text>
-          </TouchableOpacity>
+          <Button icon="plus" mode="contained">
+            New Task
+          </Button>
         </Link>
-        <TouchableOpacity
-          className="flex-row items-center gap-2 rounded-lg border border-outline bg-surface px-4 py-2.5"
-        >
-          <Feather name="filter" size={16} color={theme.colors.onSurface} />
-          <Text className="text-sm font-semibold text-on-surface">
-            Filters
-          </Text>
-        </TouchableOpacity>
+        <Button icon="filter-variant" mode="outlined">
+          Filters
+        </Button>
       </View>
 
       <FlatList
         data={tasks}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <TaskItem item={item} />}
-        contentContainerStyle={{ paddingBottom: 40 }}
+        contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
       />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  actionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    padding: 16,
+  },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 40,
+  },
+  taskCard: {
+    marginBottom: 16,
+  },
+  taskHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  taskTitle: {
+    fontSize: 16,
+    marginLeft: 8,
+  },
+  taskDetails: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    marginTop: 12,
+    marginLeft: 40, // Align with checkbox
+  },
+  detailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 16,
+    marginBottom: 8,
+  },
+  detailText: {
+    marginLeft: 4,
+    fontSize: 12,
+  },
+  tagIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+});
