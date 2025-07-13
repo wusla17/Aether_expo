@@ -21,182 +21,59 @@ export type SearchResult = {
   type: 'note' | 'todo';
 };
 
-const db = SQLite.openDatabase('aether.db');
+const db = SQLite.openDatabaseSync('aether.db');
 
-export function initDb(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    db.transaction(tx => {
-      tx.executeSql(
-        'CREATE TABLE IF NOT EXISTS notes (id TEXT PRIMARY KEY NOT NULL, title TEXT NOT NULL, content TEXT NOT NULL, createdAt INTEGER NOT NULL);',
-        [],
-        () => {
-          tx.executeSql(
-            'CREATE TABLE IF NOT EXISTS todos (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, task TEXT NOT NULL, completed INTEGER NOT NULL, createdAt INTEGER NOT NULL);',
-            [],
-            () => resolve(),
-            (_, error) => {
-              reject(error);
-              return false;
-            }
-          );
-        },
-        (_, error) => {
-          reject(error);
-          return false;
-        }
-      );
-    });
-  });
+export async function initDb() {
+  await db.execAsync(`
+    PRAGMA journal_mode = WAL;
+    CREATE TABLE IF NOT EXISTS notes (id TEXT PRIMARY KEY NOT NULL, title TEXT NOT NULL, content TEXT NOT NULL, createdAt INTEGER NOT NULL);
+    CREATE TABLE IF NOT EXISTS todos (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, task TEXT NOT NULL, completed INTEGER NOT NULL, createdAt INTEGER NOT NULL);
+  `);
 }
 
-export function saveNote(note: Note): Promise<void> {
-  return new Promise((resolve, reject) => {
-    db.transaction(tx => {
-      tx.executeSql(
-        'INSERT OR REPLACE INTO notes (id, title, content, createdAt) VALUES (?, ?, ?, ?);',
-        [note.id, note.title, note.content, note.createdAt],
-        () => resolve(),
-        (_, error) => {
-          reject(error);
-          return false;
-        }
-      );
-    });
-  });
+export async function saveNote(note: Note) {
+  await db.runAsync(
+    'INSERT OR REPLACE INTO notes (id, title, content, createdAt) VALUES (?, ?, ?, ?);',
+    note.id,
+    note.title,
+    note.content,
+    note.createdAt
+  );
 }
 
-export function getNoteById(id: string): Promise<Note | undefined> {
-  return new Promise((resolve, reject) => {
-    db.transaction(tx => {
-      tx.executeSql(
-        'SELECT * FROM notes WHERE id = ?;',
-        [id],
-        (_, { rows }) => {
-          if (rows.length > 0) {
-            resolve(rows.item(0));
-          } else {
-            resolve(undefined);
-          }
-        },
-        (_, error) => {
-          reject(error);
-          return false;
-        }
-      );
-    });
-  });
+export async function getNoteById(id: string): Promise<Note | null> {
+  const note = await db.getFirstAsync<Note>('SELECT * FROM notes WHERE id = ?;', id);
+  return note;
 }
 
-export function getAllNotes(): Promise<Note[]> {
-  return new Promise((resolve, reject) => {
-    db.transaction(tx => {
-      tx.executeSql(
-        'SELECT * FROM notes ORDER BY createdAt DESC;',
-        [],
-        (_, { rows }) => {
-          const notes: Note[] = [];
-          for (let i = 0; i < rows.length; i++) {
-            notes.push(rows.item(i));
-          }
-          resolve(notes);
-        },
-        (_, error) => {
-          reject(error);
-          return false;
-        }
-      );
-    });
-  });
+export async function getAllNotes(): Promise<Note[]> {
+  const notes = await db.getAllAsync<Note>('SELECT * FROM notes ORDER BY createdAt DESC;');
+  return notes;
 }
 
-export function deleteNote(id: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    db.transaction(tx => {
-      tx.executeSql(
-        'DELETE FROM notes WHERE id = ?;',
-        [id],
-        () => resolve(),
-        (_, error) => {
-          reject(error);
-          return false;
-        }
-      );
-    });
-  });
+export async function deleteNote(id: string) {
+  await db.runAsync('DELETE FROM notes WHERE id = ?;', id);
 }
 
 export function getNotes(): Promise<Note[]> {
   return getAllNotes();
 }
 
-export function addTodo(task: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    db.transaction(tx => {
-      tx.executeSql(
-        'INSERT INTO todos (task, completed, createdAt) VALUES (?, 0, ?);',
-        [task, Date.now()],
-        () => resolve(),
-        (_, error) => {
-          reject(error);
-          return false;
-        }
-      );
-    });
-  });
+export async function addTodo(task: string) {
+  await db.runAsync('INSERT INTO todos (task, completed, createdAt) VALUES (?, 0, ?);', task, Date.now());
 }
 
-export function deleteTodo(id: number): Promise<void> {
-  return new Promise((resolve, reject) => {
-    db.transaction(tx => {
-      tx.executeSql(
-        'DELETE FROM todos WHERE id = ?;',
-        [id],
-        () => resolve(),
-        (_, error) => {
-          reject(error);
-          return false;
-        }
-      );
-    });
-  });
+export async function deleteTodo(id: number) {
+  await db.runAsync('DELETE FROM todos WHERE id = ?;', id);
 }
 
-export function getTodos(): Promise<Todo[]> {
-  return new Promise((resolve, reject) => {
-    db.transaction(tx => {
-      tx.executeSql(
-        'SELECT * FROM todos ORDER BY createdAt DESC;',
-        [],
-        (_, { rows }) => {
-          const todos: Todo[] = [];
-          for (let i = 0; i < rows.length; i++) {
-            todos.push(rows.item(i));
-          }
-          resolve(todos);
-        },
-        (_, error) => {
-          reject(error);
-          return false;
-        }
-      );
-    });
-  });
+export async function getTodos(): Promise<Todo[]> {
+  const todos = await db.getAllAsync<Todo>('SELECT * FROM todos ORDER BY createdAt DESC;');
+  return todos;
 }
 
-export function updateTodo(id: number, task: string, completed: boolean): Promise<void> {
-  return new Promise((resolve, reject) => {
-    db.transaction(tx => {
-      tx.executeSql(
-        'UPDATE todos SET task = ?, completed = ? WHERE id = ?;',
-        [task, completed ? 1 : 0, id],
-        () => resolve(),
-        (_, error) => {
-          reject(error);
-          return false;
-        }
-      );
-    });
-  });
+export async function updateTodo(id: number, task: string, completed: boolean) {
+  await db.runAsync('UPDATE todos SET task = ?, completed = ? WHERE id = ?;', task, completed ? 1 : 0, id);
 }
 
 export async function searchNotesAndTodos(query: string): Promise<SearchResult[]> {

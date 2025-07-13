@@ -9,7 +9,7 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
       }}
-      tabBar={(props) => <CustomTabBar {...props} />}
+      tabBar={(props) => <CustomTabBar/>}
     >
       <Tabs.Screen
         name="index"
@@ -31,26 +31,7 @@ export default function TabLayout() {
           tabBarIconName: 'magnify',
         } as ScreenOptions}
       />
-      <Tabs.Screen
-        name="plus"
-        options={{
-          title: '',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="plus" color={color} size={size} />
-          ),
-          tabBarIconName: 'plus',
-        } as ScreenOptions}
-      />
-      <Tabs.Screen
-        name="todo"
-        options={{
-          title: 'To-Do',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="check-all" color={color} size={size} />
-          ),
-          tabBarIconName: 'check-all',
-        } as ScreenOptions}
-      />
+      
       <Tabs.Screen
         name="notifications"
         options={{
@@ -61,6 +42,7 @@ export default function TabLayout() {
           tabBarIconName: 'bell',
         } as ScreenOptions}
       />
+
     </Tabs>
   );
 }

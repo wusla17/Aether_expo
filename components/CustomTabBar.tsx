@@ -1,147 +1,73 @@
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { ScreenOptions } from '@/types/navigation';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BlurView } from 'expo-blur';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
-import { ThemedText } from './ThemedText';
+import { Href, usePathname, useRouter } from 'expo-router';
+import { Home, Inbox, Pen, Search } from 'lucide-react-native';
+import { Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
 
-const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+const { width } = Dimensions.get('window');
+
+const TABS: { icon: JSX.Element; route: Href }[] = [
+  { icon: <Home size={22} color="white" />, route: '/(tabs)' },
+  { icon: <Search size={22} color="white" />, route: '/(tabs)/search' },
+  { icon: <Pen size={22} color="white" />, route: '/note/new' },
+  { icon: <Inbox size={22} color="white" />, route: '/(tabs)/todo' },
+];
+
+export default function CustomTabBar() {
+  const router = useRouter();
+  const pathname = usePathname();
 
   return (
-    <BlurView
-      style={styles.tabBar}
-      tint="dark"
-      intensity={100}
-    >
-      {state.routes.map((route, index) => {
-        const { options } = descriptors[route.key] as { options: ScreenOptions };
-        const label =
-          options.tabBarLabel !== undefined
-            ? options.tabBarLabel
-            : options.title !== undefined
-            ? options.title
-            : route.name;
-
-        const isFocused = state.index === index;
-
-        const onPress = () => {
-          if (route.name === 'plus') {
-            // Handle the plus button press, e.g., open a modal
-            console.log('Plus button pressed');
-            return;
-          }
-
-          const event = navigation.emit({
-            type: 'tabPress',
-            target: route.key,
-            canPreventDefault: true,
-          });
-
-          if (!isFocused && !event.defaultPrevented) {
-            navigation.navigate(route.name);
-          }
-        };
-
-        const onLongPress = () => {
-          navigation.emit({
-            type: 'tabLongPress',
-            target: route.key,
-          });
-        };
-
-        const iconName = options.tabBarIconName;
-
-        if (route.name === 'plus') {
+    <View style={styles.wrapper}>
+      <BlurView intensity={30} tint="dark" style={styles.tabBar}>
+        {TABS.map((tab, index) => {
+          const isActive = pathname === tab.route;
           return (
             <TouchableOpacity
-              key={route.key}
-              accessibilityRole="button"
-              accessibilityLabel={options.tabBarAccessibilityLabel}
-              testID={options.tabBarTestID}
-              onPress={onPress}
-              onLongPress={onLongPress}
-              style={styles.plusButton}
-            >
-              <View style={[styles.plusButtonIconContainer, { backgroundColor: colors.tint }]}>
-                <MaterialCommunityIcons name={iconName} size={32} color={colors.background} />
+              key={index}
+              onPress={() => router.replace(tab.route)}
+              activeOpacity={0.9}
+              style={styles.tabButton}>
+              <View style={[styles.iconWrapper, isActive && styles.activeIconWrapper]}>
+                {tab.icon}
               </View>
             </TouchableOpacity>
           );
-        }
-
-        return (
-          <TouchableOpacity
-            key={route.key}
-            accessibilityRole="button"
-            accessibilityState={isFocused ? { selected: true } : {}}
-            accessibilityLabel={options.tabBarAccessibilityLabel}
-            testID={options.tabBarTestID}
-            onPress={onPress}
-            onLongPress={onLongPress}
-            style={styles.tabItem}
-          >
-            <View style={[styles.iconContainer, isFocused && styles.iconContainerFocused, { backgroundColor: isFocused ? colors.tint : 'transparent'}]}>
-              <MaterialCommunityIcons name={iconName} size={24} color={isFocused ? colors.background : colors.icon} />
-            </View>
-            <ThemedText style={{ color: isFocused ? colors.tint : colors.icon }}>
-              {typeof label === 'string' ? label : ''}
-            </ThemedText>
-          </TouchableOpacity>
-        );
-      })}
-    </BlurView>
+        })}
+      </BlurView>
+    </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  tabBar: {
-    flexDirection: 'row',
-    height: 80,
+  wrapper: {
     position: 'absolute',
     bottom: 20,
     left: 20,
     right: 20,
-    borderRadius: 25,
-    overflow: 'hidden',
-  },
-  tabItem: {
-    flex: 1,
+    zIndex: 100,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  iconContainerFocused: {
-    //
-  },
-  plusButton: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: -20,
-  },
-  plusButtonIconContainer: {
-    width: 60,
-    height: 60,
+  tabBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: width - 40,
     borderRadius: 30,
-    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    overflow: 'hidden',
+    padding: 10,
+  },
+  tabButton: {
+    flex: 1,
     alignItems: 'center',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+  },
+  iconWrapper: {
+    padding: 10,
+    borderRadius: 25,
+  },
+  activeIconWrapper: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 25,
+    backdropFilter: 'blur(10px)',
   },
 });
-
-export default CustomTabBar;
