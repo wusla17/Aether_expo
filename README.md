@@ -12,7 +12,8 @@ Aether is currently in **active development**, with a strong focus on **stabilit
 -   **Enhanced UI with React Native Paper**: The user interface has been refactored to utilize `react-native-paper` components, providing a **consistent** and **modern Material Design** look and feel.
 -   **Note-Taking**: Create, edit, and organize notes with a simple interface. Notes are accessible through a dedicated section, allowing for **quick capture of ideas** or information.
 -   **Task Management**: Add and manage tasks with a todo list feature. Users can create new tasks and **track their completion status**.
--   **Tab Navigation**: Utilizes Expo Router for file-based routing with a tabbed interface, providing **easy access** to Home, Search, Todo, and Notifications sections, with a **custom tab bar** for improved aesthetics.
+-   **Tab Navigation**: Utilizes Expo Router for file-based routing with a tabbed interface, providing **easy access** to Home, Search, Todo, and Notifications sections.
+-   **Redesigned Bottom Navigation**: A stylish and modern bottom navigation bar with a glassmorphism effect, providing a visually appealing and intuitive user experience.
 
 ## 🎯 Why Aether? (For Developers & Users)
 
@@ -60,6 +61,7 @@ Aether aims to evolve into a full-fledged productivity suite with the following 
 -   **Database Migration**: Successfully migrated from `AsyncStorage` to `expo-sqlite` to ensure **data integrity** and **scalability**, resolving initial startup issues.
 -   **UI Consistency**: Transitioned from NativeWind/Tailwind CSS to `react-native-paper` for a more **cohesive** and **maintainable UI**, addressing previous styling inconsistencies.
 -   **Navigation**: Leveraging Expo Router for a **scalable navigation structure**, ensuring new features can be added seamlessly.
+-   **Bottom Navigation Bar**: Redesigned the bottom navigation bar to be more stylish and modern, with a glassmorphism effect and subtle animations.
 
 ## 🤝 Contributing
 
