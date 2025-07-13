@@ -1,35 +1,57 @@
 import { BlurView } from 'expo-blur';
 import { Href, usePathname, useRouter } from 'expo-router';
-import { Home, Inbox, Pen, Search } from 'lucide-react-native';
+import { Calendar, CheckCircle, Home, Search } from 'lucide-react-native';
+import React from 'react';
 import { Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 const { width } = Dimensions.get('window');
+const TAB_WIDTH = (width - 40) / 4;
 
-const TABS: { icon: JSX.Element; route: Href }[] = [
-  { icon: <Home size={22} color="white" />, route: '/(tabs)' },
-  { icon: <Search size={22} color="white" />, route: '/(tabs)/search' },
-  { icon: <Pen size={22} color="white" />, route: '/note/new' },
-  { icon: <Inbox size={22} color="white" />, route: '/(tabs)/todo' },
+const TABS: { icon: (props: { color: string, size: number, strokeWidth?: number }) => React.ReactNode; route: Href }[] = [
+  { icon: (props) => <Home {...props} />, route: '/(tabs)' },
+  { icon: (props) => <CheckCircle {...props} />, route: '/(tabs)/todo' },
+  { icon: (props) => <Calendar {...props} />, route: '/(tabs)/calendar' },
+  { icon: (props) => <Search {...props} />, route: '/(tabs)/search' },
 ];
 
 export default function CustomTabBar() {
   const router = useRouter();
   const pathname = usePathname();
+  const activeIndex = TABS.findIndex(tab => tab.route === pathname);
+  const translateX = useSharedValue(activeIndex * TAB_WIDTH);
+
+  const handlePress = (route: Href, index: number) => {
+    router.replace(route);
+    translateX.value = withSpring(index * TAB_WIDTH, {
+      damping: 15,
+      stiffness: 120,
+    });
+  };
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateX: translateX.value }],
+    };
+  });
 
   return (
     <View style={styles.wrapper}>
-      <BlurView intensity={30} tint="dark" style={styles.tabBar}>
+      <BlurView intensity={80} tint="dark" style={styles.tabBar}>
+        <Animated.View style={[styles.activeIndicator, animatedStyle]} />
         {TABS.map((tab, index) => {
-          const isActive = pathname === tab.route;
+          const isActive = activeIndex === index;
           return (
             <TouchableOpacity
               key={index}
-              onPress={() => router.replace(tab.route)}
-              activeOpacity={0.9}
+              onPress={() => handlePress(tab.route, index)}
+              activeOpacity={0.8}
               style={styles.tabButton}>
-              <View style={[styles.iconWrapper, isActive && styles.activeIconWrapper]}>
-                {tab.icon}
-              </View>
+              {tab.icon({
+                color: 'white',
+                size: 24,
+                strokeWidth: isActive ? 2.5 : 2,
+              })}
             </TouchableOpacity>
           );
         })}
@@ -41,33 +63,39 @@ export default function CustomTabBar() {
 const styles = StyleSheet.create({
   wrapper: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 30,
     left: 20,
     right: 20,
-    zIndex: 100,
     alignItems: 'center',
-    justifyContent: 'center',
   },
   tabBar: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    width: width - 40,
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 400,
+    height: 60,
     borderRadius: 30,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    paddingHorizontal: 10,
     overflow: 'hidden',
-    padding: 10,
   },
   tabButton: {
     flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
+    height: '100%',
+    zIndex: 1,
   },
-  iconWrapper: {
-    padding: 10,
-    borderRadius: 25,
-  },
-  activeIconWrapper: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 25,
-    backdropFilter: 'blur(10px)',
+  activeIndicator: {
+    position: 'absolute',
+    width: TAB_WIDTH - 10,
+    height: '70%',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    left: 5,
+    top: '15%',
+    zIndex: 0,
   },
 });

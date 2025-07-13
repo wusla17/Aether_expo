@@ -22,6 +22,26 @@ export default function TabLayout() {
         } as ScreenOptions}
       />
       <Tabs.Screen
+        name="todo"
+        options={{
+          title: 'Todo',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="check-circle-outline" color={color} size={size} />
+          ),
+          tabBarIconName: 'check-circle-outline',
+        } as ScreenOptions}
+      />
+      <Tabs.Screen
+        name="calendar"
+        options={{
+          title: 'Calendar',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="calendar-outline" color={color} size={size} />
+          ),
+          tabBarIconName: 'calendar-outline',
+        } as ScreenOptions}
+      />
+      <Tabs.Screen
         name="search"
         options={{
           title: 'Search',
@@ -31,18 +51,6 @@ export default function TabLayout() {
           tabBarIconName: 'magnify',
         } as ScreenOptions}
       />
-      
-      <Tabs.Screen
-        name="notifications"
-        options={{
-          title: 'Notifications',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="bell" color={color} size={size} />
-          ),
-          tabBarIconName: 'bell',
-        } as ScreenOptions}
-      />
-
     </Tabs>
   );
 }
