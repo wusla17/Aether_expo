@@ -1,17 +1,23 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Appbar, Card, Text, useTheme } from 'react-native-paper';
-import { getNoteById, Note } from '@/utils/database';
+import { getNoteById, updateNoteLastAccessed, Note } from '@/utils/database';
 
 export default function NoteView() {
   const { id } = useLocalSearchParams();
   const [note, setNote] = useState<Note | null>(null);
   const theme = useTheme();
+  const router = useRouter();
 
   useEffect(() => {
     if (typeof id === 'string') {
-      getNoteById(id).then(note => setNote(note ?? null));
+      getNoteById(id).then(note => {
+        setNote(note ?? null);
+        if (note) {
+          updateNoteLastAccessed(note.id); // Update last accessed time
+        }
+      });
     }
   }, [id]);
 

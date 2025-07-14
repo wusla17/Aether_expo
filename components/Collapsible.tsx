@@ -1,4 +1,4 @@
-/// <reference types="nativewind/types" />
+
 import { PropsWithChildren, useState } from 'react';
 import { TouchableOpacity } from 'react-native';
 

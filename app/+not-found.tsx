@@ -1,4 +1,4 @@
-/// <reference types="nativewind/types" />
+
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Link, Stack } from 'expo-router';

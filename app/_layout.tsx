@@ -5,6 +5,9 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, useColorScheme, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { MD3DarkTheme, MD3LightTheme, Provider as PaperProvider } from 'react-native-paper';
+import { enableScreens } from 'react-native-screens';
+
+enableScreens();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();

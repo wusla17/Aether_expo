@@ -7,12 +7,10 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withTiming,
-  interpolate,
-  Extrapolate,
 } from 'react-native-reanimated';
 import { Canvas, Path, Skia, Blur, LinearGradient, vec } from '@shopify/react-native-skia';
 import { useEffect } from 'react';
+import TabItem from './TabItem'; // Import the new TabItem component
 
 const tabs = [
   { name: 'index', title: 'Home', icon: Home },
@@ -56,7 +54,7 @@ export default function FloatingNav({ state, navigation }: BottomTabBarProps) {
 
   useEffect(() => {
     fabY.value = withSpring(0, { damping: 15, stiffness: 100 });
-  }, []);
+  }, [fabY]); // Added fabY to dependency array
 
   const path = Skia.Path.Make();
   path.moveTo(0, navHeight);
@@ -87,18 +85,6 @@ export default function FloatingNav({ state, navigation }: BottomTabBarProps) {
         <View style={styles.tabsContainer}>
           {filteredRoutes.map((route, index) => {
             const isFocused = state.index === index;
-            const tabAnimation = useSharedValue(0);
-
-            useEffect(() => {
-                tabAnimation.value = withSpring(isFocused ? 1 : 0, { damping: 10, stiffness: 100 });
-            }, [isFocused]);
-
-            const animatedTabStyle = useAnimatedStyle(() => {
-                const translateY = interpolate(tabAnimation.value, [0, 1], [0, -10], Extrapolate.CLAMP);
-                return {
-                    transform: [{ translateY }]
-                }
-            });
 
             const onPress = () => {
               const event = navigation.emit({
@@ -116,18 +102,13 @@ export default function FloatingNav({ state, navigation }: BottomTabBarProps) {
             const TabIcon = tabInfo?.icon || Home;
 
             return (
-              <TouchableOpacity
+              <TabItem
                 key={route.key}
+                isFocused={isFocused}
                 onPress={onPress}
-                style={styles.tabItem}
-              >
-                <Animated.View style={animatedTabStyle}>
-                    <TabIcon
-                    size={24}
-                    color={isFocused ? (isDark ? '#fff' : '#000') : '#888'}
-                    />
-                </Animated.View>
-              </TouchableOpacity>
+                icon={TabIcon}
+                isDark={isDark}
+              />
             );
           })}
         </View>

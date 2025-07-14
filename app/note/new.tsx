@@ -18,7 +18,7 @@ export default function NewNote() {
 
   useEffect(() => {
     if (noteId) {
-      saveNote({ id: noteId, title, content, createdAt: Date.now() });
+      saveNote({ id: noteId, title, content, createdAt: Date.now(), lastAccessedAt: Date.now() });
     }
   }, [title, content, noteId]);
 

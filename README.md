@@ -59,7 +59,7 @@ Aether aims to evolve into a full-fledged productivity suite with the following 
 ## 🚧 Development Challenges & Solutions
 
 -   **Database Migration**: Successfully migrated from `AsyncStorage` to `expo-sqlite` to ensure **data integrity** and **scalability**, resolving initial startup issues.
--   **UI Consistency**: Transitioned from NativeWind/Tailwind CSS to `react-native-paper` for a more **cohesive** and **maintainable UI**, addressing previous styling inconsistencies.
+-   **UI Consistency**: Transitioned from Tailwind CSS to `react-native-paper` for a more **cohesive** and **maintainable UI**, addressing previous styling inconsistencies.
 -   **Navigation**: Leveraging Expo Router for a **scalable navigation structure**, ensuring new features can be added seamlessly.
 -   **Bottom Navigation Bar**: Redesigned the bottom navigation bar to be more stylish and modern, with a glassmorphism effect and subtle animations.
 

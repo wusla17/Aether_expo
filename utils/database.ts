@@ -5,6 +5,7 @@ export type Note = {
   title: string;
   content: string;
   createdAt: number;
+  lastAccessedAt: number; // New field
 };
 
 export type Todo = {
@@ -19,6 +20,8 @@ export type SearchResult = {
   name: string;
   description: string;
   type: 'note' | 'todo';
+  createdAt: number;
+  lastAccessedAt?: number; // Optional for search results
 };
 
 const db = SQLite.openDatabaseSync('aether.db');
@@ -26,18 +29,19 @@ const db = SQLite.openDatabaseSync('aether.db');
 export async function initDb() {
   await db.execAsync(`
     PRAGMA journal_mode = WAL;
-    CREATE TABLE IF NOT EXISTS notes (id TEXT PRIMARY KEY NOT NULL, title TEXT NOT NULL, content TEXT NOT NULL, createdAt INTEGER NOT NULL);
+    CREATE TABLE IF NOT EXISTS notes (id TEXT PRIMARY KEY NOT NULL, title TEXT NOT NULL, content TEXT NOT NULL, createdAt INTEGER NOT NULL, lastAccessedAt INTEGER NOT NULL DEFAULT 0);
     CREATE TABLE IF NOT EXISTS todos (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, task TEXT NOT NULL, completed INTEGER NOT NULL, createdAt INTEGER NOT NULL);
   `);
 }
 
 export async function saveNote(note: Note) {
   await db.runAsync(
-    'INSERT OR REPLACE INTO notes (id, title, content, createdAt) VALUES (?, ?, ?, ?);',
+    'INSERT OR REPLACE INTO notes (id, title, content, createdAt, lastAccessedAt) VALUES (?, ?, ?, ?, ?);',
     note.id,
     note.title,
     note.content,
-    note.createdAt
+    note.createdAt,
+    note.lastAccessedAt || Date.now() // Set lastAccessedAt on save if not provided
   );
 }
 
@@ -46,8 +50,12 @@ export async function getNoteById(id: string): Promise<Note | null> {
   return note;
 }
 
+export async function updateNoteLastAccessed(id: string) {
+  await db.runAsync('UPDATE notes SET lastAccessedAt = ? WHERE id = ?;', Date.now(), id);
+}
+
 export async function getAllNotes(): Promise<Note[]> {
-  const notes = await db.getAllAsync<Note>('SELECT * FROM notes ORDER BY createdAt DESC;');
+  const notes = await db.getAllAsync<Note>('SELECT * FROM notes ORDER BY lastAccessedAt DESC;'); // Order by lastAccessedAt
   return notes;
 }
 
@@ -91,6 +99,8 @@ export async function searchNotesAndTodos(query: string): Promise<SearchResult[]
       name: note.title,
       description: note.content,
       type: 'note',
+      createdAt: note.createdAt,
+      lastAccessedAt: note.lastAccessedAt,
     }));
 
   const todoResults: SearchResult[] = todos
@@ -100,6 +110,7 @@ export async function searchNotesAndTodos(query: string): Promise<SearchResult[]
       name: todo.task,
       description: '',
       type: 'todo',
+      createdAt: todo.createdAt,
     }));
 
   return [...noteResults, ...todoResults];

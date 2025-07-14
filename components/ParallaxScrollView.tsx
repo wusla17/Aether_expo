@@ -1,4 +1,4 @@
-/// <reference types="nativewind/types" />
+
 import type { PropsWithChildren, ReactElement } from 'react';
 import Animated, {
   interpolate,

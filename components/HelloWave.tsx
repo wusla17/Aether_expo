@@ -1,4 +1,4 @@
-/// <reference types="nativewind/types" />
+
 import { useEffect } from 'react';
 import Animated, {
   useAnimatedStyle,
