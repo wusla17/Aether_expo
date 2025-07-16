@@ -1,5 +1,5 @@
 {
-  "extends": "expo/tsconfig.json",
+  "extends": "@expo/metro-config/tsconfig.base",
   "compilerOptions": {
     "strict": true,
     "esModuleInterop": true,

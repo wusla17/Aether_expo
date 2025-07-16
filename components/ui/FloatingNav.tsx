@@ -19,7 +19,7 @@ const tabs = [
 ];
 
 const { width: screenWidth } = Dimensions.get('window');
-const fabSize = 64;
+const fabSize = 48;
 const navWidth = screenWidth * 0.9;
 const navHeight = 70;
 const fabInitialY = -30;
@@ -68,7 +68,7 @@ export default function FloatingNav({ state, navigation }: BottomTabBarProps) {
       <Animated.View style={[styles.fabContainer, animatedFabStyle]}>
         <TouchableOpacity onPress={handleSearchPress}>
           <View style={styles.fab}>
-            <Search size={32} color={isDark ? '#fff' : '#000'} />
+            <Search size={24} color={isDark ? '#fff' : '#000'} />
           </View>
         </TouchableOpacity>
       </Animated.View>
@@ -132,10 +132,10 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   fab: {
-    width: fabSize,
-    height: fabSize,
-    borderRadius: fabSize / 2,
-    backgroundColor: 'rgba(128, 128, 128, 0.5)',
+    width: 120,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'red',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',

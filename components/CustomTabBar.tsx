@@ -1,8 +1,8 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BlurView } from 'expo-blur';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import { MotiView } from 'moti';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -13,9 +13,10 @@ import {
   TouchableOpacity,
   View,
   useColorScheme,
-  useWindowDimensions,
+  useWindowDimensions
 } from 'react-native';
 import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler';
+import { useSharedValue, withSpring } from 'react-native-reanimated';
 import AppDetailsBottomSheet from './AppDetailsBottomSheet';
 
 // Define a type for the icon names to ensure type safety
@@ -39,12 +40,9 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const lastTap = useRef(0);
   const searchBarAnim = useRef(new Animated.Value(0)).current;
   const searchInputRef = useRef<TextInput>(null);
-  const keyboardHeightAnim = useRef(new Animated.Value(0)).current;
-  const bottomOffset = useRef(new Animated.Value(20)).current; // For Animated.add
+  const tabBarBottomAnim = useRef(new Animated.Value(20)).current;
 
   const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
-  const bottomSheetAnim = useRef(new Animated.Value(0)).current;
-  const tabBarAnim = useRef(new Animated.Value(1)).current;
 
   const tabData = React.useMemo(() => tabs.map(t => ({
     ...t,
@@ -63,52 +61,14 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
     });
   }, [isSearchBarVisible]);
 
-  useEffect(() => {
-    Animated.spring(bottomSheetAnim, {
-      toValue: isBottomSheetVisible ? 1 : 0,
-      useNativeDriver: false,
-    }).start();
-
-    Animated.spring(tabBarAnim, {
-      toValue: isBottomSheetVisible ? 0 : 1,
-      useNativeDriver: false,
-    }).start();
-  }, [isBottomSheetVisible]);
-
-  useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener(
-      'keyboardDidShow',
-      (e) => {
-        Animated.timing(keyboardHeightAnim, {
-          toValue: e.endCoordinates.height,
-          duration: e.duration,
-          useNativeDriver: false,
-        }).start();
-      }
-    );
-    const keyboardDidHideListener = Keyboard.addListener(
-      'keyboardDidHide',
-      (e) => {
-        Animated.timing(keyboardHeightAnim, {
-          toValue: 0,
-          duration: e.duration,
-          useNativeDriver: false,
-        }).start();
-      }
-    );
-
-    return () => {
-      keyboardDidHideListener.remove();
-      keyboardDidShowListener.remove();
-    };
-  }, []);
-
   const handleTabPress = (name: string) => {
     if (isBottomSheetVisible) {
       setIsBottomSheetVisible(false);
     }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const now = Date.now();
     const DOUBLE_PRESS_DELAY = 300;
+    
     if (name === 'search') {
       if (now - lastTap.current < DOUBLE_PRESS_DELAY) {
         setIsSearchBarVisible(true);
@@ -142,8 +102,6 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
       const { translationY } = event.nativeEvent;
       if (translationY < -50) {
         setIsBottomSheetVisible(true);
-      } else {
-        setIsBottomSheetVisible(false);
       }
     }
   };
@@ -155,6 +113,35 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
     [screenWidth]
   );
 
+  // Keyboard handling
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      (e) => {
+        Animated.timing(tabBarBottomAnim, {
+          toValue: e.endCoordinates.height + 40,
+          duration: e.duration,
+          useNativeDriver: false,
+        }).start();
+      }
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      (e) => {
+        Animated.timing(tabBarBottomAnim, {
+          toValue: 20,
+          duration: e.duration,
+          useNativeDriver: false,
+        }).start();
+      }
+    );
+
+    return () => {
+      keyboardDidHideListener.remove();
+      keyboardDidShowListener.remove();
+    };
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
       <PanGestureHandler onHandlerStateChange={onHandlerStateChange}>
@@ -163,15 +150,11 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
             styles.wrapper,
             isSearchBarVisible && styles.wrapperNoShadow,
             {
-              height: tabBarAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [50, 70],
-              }),
               marginHorizontal: searchBarAnim.interpolate({
                 inputRange: [0, 1],
-                outputRange: [20, 40],
+                outputRange: ['4%', '8%'],
               }),
-              bottom: Animated.add(keyboardHeightAnim, isSearchBarVisible ? bottomOffset : new Animated.Value(20)),
+              bottom: tabBarBottomAnim,
             },
           ]}
         >
@@ -209,7 +192,9 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
                   <View style={[
                     styles.searchInputWrapper,
                     {
-                      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                      backgroundColor: isDark ? 'rgba(40,40,40,0.95)' : 'rgba(255,255,255,0.95)',
+                      borderWidth: 1,
+                      borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)',
                     }
                   ]}>
                     <TouchableOpacity
@@ -221,7 +206,7 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
                     >
                       <MaterialCommunityIcons
                         name="magnify"
-                        size={20}
+                        size={16}
                         color={isDark ? '#999999' : '#666666'}
                         style={styles.searchIconInside}
                       />
@@ -243,68 +228,46 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
                 </Animated.View>
               ) : (
                 <>
-                  {/* Animated Selection Background */}
+                  {/* Selection Background */}
                   <Animated.View
                     style={[
                       styles.selectionBackground,
                       {
-                        left: state.index * tabItemWidth + (tabItemWidth - 70) / 2,
-                        opacity: tabBarAnim,
+                        left: state.index * tabItemWidth + (tabItemWidth - 68) / 2,
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                        borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)',
                       },
                     ]}
-                  >
-                    <BlurView
-                      intensity={50}
-                      tint={isDark ? 'dark' : 'light'}
-                      style={[
-                        styles.selectionBlurView,
-                        {
-                          backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.3)',
-                          borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.5)',
-                        }
-                      ]}
-                    />
-                  </Animated.View>
+                  />
 
-                  {tabData.map(({ name, icon, label, isFocused }: { name: string; icon: IconName; label: string; isFocused: boolean }) => (
+                  {tabData.map(({ name, icon, label, isFocused }, index) => (
                     <TouchableOpacity
                       key={name}
                       onPress={() => handleTabPress(name)}
                       style={[styles.tabItem, { width: tabItemWidth }]}
                       activeOpacity={0.7}
                     >
-                      <View style={styles.contentContainer}>
-                        <MotiView
-                          style={styles.iconContainer}
-                          animate={{
-                            scale: isFocused ? 1.1 : 1,
-                            translateY: isFocused ? -2 : 0,
-                          }}
-                          transition={{ type: 'timing', duration: 200 }}
-                        >
-                          <MaterialCommunityIcons
-                            name={icon}
-                            size={20}
-                            color={
-                              isFocused
-                                ? (isDark ? '#ffffff' : '#000000')
-                                : (isDark ? '#999999' : '#666666')
-                            }
-                          />
-                        </MotiView>
+                      <View style={styles.tabContent}>
+                        <MaterialCommunityIcons
+                          name={icon}
+                          size={18}
+                          color={
+                            isFocused
+                              ? (isDark ? '#ffffff' : '#000000')
+                              : (isDark ? '#888888' : '#666666')
+                          }
+                        />
                         {isFocused && (
-                          <MotiView
-                            style={styles.labelContainer}
-                            animate={{ opacity: tabBarAnim, translateY: 0 }}
-                            transition={{ type: 'timing', duration: 200 }}
-                          >
-                            <Text style={[
+                          <Text
+                            style={[
                               styles.label,
-                              { color: isDark ? '#ffffff' : '#000000', fontWeight: '600' }
-                            ]}>
-                              {label}
-                            </Text>
-                          </MotiView>
+                              {
+                                color: isDark ? '#ffffff' : '#000000',
+                              },
+                            ]}
+                          >
+                            {label}
+                          </Text>
                         )}
                       </View>
                     </TouchableOpacity>
@@ -318,8 +281,6 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
       <AppDetailsBottomSheet
         isVisible={isBottomSheetVisible}
         onClose={() => setIsBottomSheetVisible(false)}
-        isDark={isDark}
-        animationValue={bottomSheetAnim}
       />
     </GestureHandlerRootView>
   );
@@ -330,7 +291,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    height: 70,
+    bottom: 0,
+    height: 74,
     borderRadius: 35,
     overflow: 'hidden',
     elevation: 12,
@@ -361,44 +323,28 @@ const styles = StyleSheet.create({
     height: '100%',
     zIndex: 2,
   },
-  contentContainer: {
+  tabContent: {
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 40,
-  },
-  iconContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 0,
-  },
-  labelContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    height: '100%',
+    gap: 2,
   },
   label: {
-    fontSize: 9,
+    fontSize: 10,
     textAlign: 'center',
     fontWeight: '600',
     letterSpacing: 0.1,
-    maxWidth: 50,
+    marginTop: 2,
   },
   selectionBackground: {
     position: 'absolute',
     top: '50%',
-    left: 4,
-    width: 70,
-    height: 50,
-    marginTop: -25,
-    borderRadius: 25,
+    width: 68,
+    height: 55,
+    marginTop: -27.5,
+    borderRadius: 27.5,
     borderWidth: 1,
     zIndex: 1,
-    overflow: 'hidden',
-  },
-  selectionBlurView: {
-    flex: 1,
-    borderRadius: 25,
-    borderWidth: 1,
-    overflow: 'hidden',
   },
   searchBarContainer: {
     position: 'absolute',
@@ -408,26 +354,31 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 15,
+    paddingHorizontal: 25,
   },
   searchInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 25,
-    paddingHorizontal: 15,
-    height: 40,
-    flex: 1,
+    borderRadius: 30,
+    paddingHorizontal: 10,
+    height: '80%',
+    width: '100%',
     marginHorizontal: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   searchIconInside: {
-    marginRight: 10,
+    marginRight: 6,
   },
   searchIconWrapper: {
     padding: 5,
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '500',
   },
 });

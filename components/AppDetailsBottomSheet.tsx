@@ -1,134 +1,183 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
-import React from 'react';
-import { Animated, Dimensions, Linking, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
-
-const { height: screenHeight } = Dimensions.get('window');
+import React, { useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  useColorScheme,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+} from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+  runOnJS,
+} from 'react-native-reanimated';
+import { PanGestureHandler, State } from 'react-native-gesture-handler';
 
 interface AppDetailsBottomSheetProps {
   isVisible: boolean;
   onClose: () => void;
-  isDark: boolean;
-  animationValue: Animated.Value;
 }
 
-const AppDetailsBottomSheet: React.FC<AppDetailsBottomSheetProps> = ({ isVisible, onClose, isDark, animationValue }) => {
-  const bottomSheetHeight = 400; // Approximate height of the bottom sheet
+const AppDetailsBottomSheet: React.FC<AppDetailsBottomSheetProps> = ({ isVisible, onClose }) => {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const opacity = useSharedValue(0);
+  const translateY = useSharedValue(350);
 
-  const translateY = animationValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: [screenHeight, screenHeight - bottomSheetHeight],
+  const containerStyle = useAnimatedStyle(() => {
+    return {
+      opacity: opacity.value,
+    };
   });
 
+  const sheetStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateY: translateY.value }],
+    };
+  });
+
+  useEffect(() => {
+    if (isVisible) {
+      opacity.value = withTiming(1, { duration: 200 });
+      translateY.value = withSpring(0, { damping: 20, stiffness: 150 });
+    } else {
+      // Dismissal animation is handled in closeSheet
+    }
+  }, [isVisible]);
+
+  const closeSheet = () => {
+    translateY.value = withSpring(350, { damping: 20, stiffness: 150 });
+    opacity.value = withTiming(0, { duration: 300 }, () => {
+      runOnJS(onClose)();
+    });
+  };
+
+  const onGestureEvent = (event: any) => {
+    if (event.nativeEvent.translationY > 0) {
+      translateY.value = event.nativeEvent.translationY;
+    }
+  };
+
+  const onHandlerStateChange = (event: any) => {
+    if (event.nativeEvent.oldState === State.ACTIVE) {
+      if (event.nativeEvent.translationY > 100) {
+        closeSheet();
+      } else {
+        translateY.value = withSpring(0, { damping: 20, stiffness: 150 });
+      }
+    }
+  };
+
+  if (!isVisible) {
+    return null;
+  }
+
   return (
-    <Modal transparent visible={isVisible} onRequestClose={onClose}>
-      <TouchableOpacity style={styles.overlay} onPress={onClose} activeOpacity={1}>
-        <Animated.View
-          style={[
-            styles.bottomSheet,
-            {
-              height: bottomSheetHeight,
-              transform: [{ translateY }],
-              backgroundColor: isDark ? 'rgba(20,20,20,0.85)' : 'rgba(255,255,255,0.85)',
-              borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-            },
-          ]}
+    <PanGestureHandler onGestureEvent={onGestureEvent} onHandlerStateChange={onHandlerStateChange}>
+      <Animated.View style={[styles.overlay, containerStyle]}>
+        <TouchableOpacity
+          style={StyleSheet.absoluteFill}
+          activeOpacity={1}
+          onPress={closeSheet}
         >
-          <BlurView intensity={50} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill}>
-        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-          <MaterialCommunityIcons name="close-circle" size={24} color={isDark ? '#999999' : '#666666'} />
+          <TouchableWithoutFeedback>
+            <Animated.View
+              style={[
+                styles.bottomSheet,
+                isDark ? styles.darkBottomSheet : styles.lightBottomSheet,
+                sheetStyle,
+              ]}
+            >
+              <View style={styles.handle} />
+              <Text style={[styles.title, isDark ? styles.darkText : styles.lightText]}>App Details</Text>
+              <View style={styles.detailItem}>
+                <Text style={[styles.detailLabel, isDark ? styles.darkText : styles.lightText]}>Version:</Text>
+                <Text style={[styles.detailValue, isDark ? styles.darkText : styles.lightText]}>1.0.0</Text>
+              </View>
+              <View style={styles.detailItem}>
+                <Text style={[styles.detailLabel, isDark ? styles.darkText : styles.lightText]}>Developer:</Text>
+                <Text style={[styles.detailValue, isDark ? styles.darkText : styles.lightText]}>Aether</Text>
+              </View>
+              <View style={styles.detailItem}>
+                <Text style={[styles.detailLabel, isDark ? styles.darkText : styles.lightText]}>Built with:</Text>
+                <Text style={[styles.detailValue, isDark ? styles.darkText : styles.lightText]}>React Native & Expo</Text>
+              </View>
+            </Animated.View>
+          </TouchableWithoutFeedback>
         </TouchableOpacity>
-        <Text style={[styles.title, { color: isDark ? '#ffffff' : '#000000' }]}>Aether Expo</Text>
-        <Text style={[styles.version, { color: isDark ? '#cccccc' : '#333333' }]}>Version 1.0.0</Text>
-        
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#ffffff' : '#000000' }]}>Developers:</Text>
-          <Text style={[styles.developerName, { color: isDark ? '#cccccc' : '#333333' }]}>Your Name 1</Text>
-          <Text style={[styles.developerName, { color: isDark ? '#cccccc' : '#333333' }]}>Your Name 2</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#ffffff' : '#000000' }]}>About This App:</Text>
-          <Text style={[styles.description, { color: isDark ? '#cccccc' : '#333333' }]}>
-            Aether Expo is a versatile mobile application designed to help you manage your daily tasks,
-            appointments, and information efficiently. It features a clean, modern interface with intuitive
-            navigation and powerful tools to keep you organized.
-          </Text>
-        </View>
-
-        <View style={styles.linksContainer}>
-          <TouchableOpacity onPress={() => Linking.openURL('https://github.com/your-repo')}>
-            <MaterialCommunityIcons name="github" size={30} color={isDark ? '#ffffff' : '#000000'} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => Linking.openURL('https://your-website.com')}>
-            <MaterialCommunityIcons name="web" size={30} color={isDark ? '#ffffff' : '#000000'} />
-          </TouchableOpacity>
-        </View>
-
-          </BlurView>
-        </Animated.View>
-      </TouchableOpacity>
-    </Modal>
+      </Animated.View>
+    </PanGestureHandler>
   );
 };
 
 const styles = StyleSheet.create({
   overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)', // Dim background
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'flex-end',
-    alignItems: 'center',
   },
   bottomSheet: {
-    width: '90%',
-    maxHeight: '70%',
-    borderRadius: 20,
-    padding: 20,
-    alignItems: 'center',
-    borderWidth: 1,
-    marginBottom: 80, // Space for the bottom navbar
-  },
-  closeButton: {
     position: 'absolute',
-    top: 10,
-    right: 10,
-    padding: 10,
-    zIndex: 1,
+    bottom: 105, // Raised the position
+    left: '4%',
+    right: '4%',
+    padding: 20,
+    borderRadius: 25,
+  },
+  lightBottomSheet: {
+    backgroundColor: '#F5F5F5',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 15,
+  },
+  darkBottomSheet: {
+    backgroundColor: '#242424',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 15,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#999999',
+    alignSelf: 'center',
+    marginBottom: 10,
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 5,
-  },
-  version: {
-    fontSize: 14,
+    textAlign: 'center',
     marginBottom: 20,
   },
-  section: {
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 5,
-  },
-  developerName: {
-    fontSize: 16,
-    marginBottom: 2,
-  },
-  description: {
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  linksContainer: {
+  detailItem: {
     flexDirection: 'row',
-    marginTop: 20,
-    width: '100%',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  detailLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  detailValue: {
+    fontSize: 16,
+  },
+  lightText: {
+    color: '#000000',
+  },
+  darkText: {
+    color: '#EAEAEA',
   },
 });
 
