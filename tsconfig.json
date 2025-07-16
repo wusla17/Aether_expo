@@ -2,6 +2,7 @@
   "extends": "expo/tsconfig.json",
   "compilerOptions": {
     "strict": true,
+    "esModuleInterop": true,
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {

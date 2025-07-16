@@ -1,9 +1,12 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Tabs } from 'expo-router';
+import CustomTabBar from '../../components/CustomTabBar';
 
 export default function TabLayout() {
   return (
     <Tabs
+      tabBar={(props: BottomTabBarProps) => <CustomTabBar {...props} />}
       screenOptions={{
         headerShown: false,
       }}
@@ -14,15 +17,6 @@ export default function TabLayout() {
           title: 'Home',
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="home" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="search"
-        options={{
-          title: 'Search',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="magnify" color={color} size={size} />
           ),
         }}
       />
@@ -45,29 +39,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="map"
+        name="search"
         options={{
-          title: 'Map',
+          title: 'Search',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="map" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="account" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: 'Settings',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="cog" color={color} size={size} />
+            <MaterialCommunityIcons name="magnify" color={color} size={size} />
           ),
         }}
       />

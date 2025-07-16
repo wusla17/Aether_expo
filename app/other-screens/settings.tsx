@@ -2,10 +2,10 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { StyleSheet } from 'react-native';
 
-export default function HomeScreen() {
+export default function SettingsScreen() {
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="title">Home</ThemedText>
+      <ThemedText type="title">Settings</ThemedText>
     </ThemedView>
   );
 }

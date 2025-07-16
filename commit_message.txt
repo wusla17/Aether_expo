@@ -1,0 +1,6 @@
+feat: Improve bottom navbar icon and label alignment and animation
+
+- Removed the liquid flow animation from the selection circle.
+- Implemented a subtle flow animation for tab icons on selection.
+- Adjusted icon and label vertical positioning for better centering within the selection circle and reduced the gap between them.
+- Corrected the horizontal positioning of the selection circle to ensure icons are perfectly centered.
