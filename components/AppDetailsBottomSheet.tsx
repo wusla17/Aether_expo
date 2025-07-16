@@ -1,7 +1,8 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Linking, Animated, Dimensions } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import React from 'react';
+import { Animated, Dimensions, Linking, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
 
 const { height: screenHeight } = Dimensions.get('window');
 
@@ -13,28 +14,28 @@ interface AppDetailsBottomSheetProps {
 }
 
 const AppDetailsBottomSheet: React.FC<AppDetailsBottomSheetProps> = ({ isVisible, onClose, isDark, animationValue }) => {
+  const bottomSheetHeight = 400; // Approximate height of the bottom sheet
+
   const translateY = animationValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [screenHeight, screenHeight * 0.2], // Adjust 0.2 to control how much of the screen it covers
+    outputRange: [screenHeight, screenHeight - bottomSheetHeight],
   });
 
-  if (!isVisible && animationValue.__getValue() === 0) {
-    return null;
-  }
-
   return (
-    <Animated.View style={[styles.overlay, { transform: [{ translateY }] }]}>
-      <BlurView
-        intensity={50}
-        tint={isDark ? 'dark' : 'light'}
-        style={[
-          styles.bottomSheet,
-          {
-            backgroundColor: isDark ? 'rgba(20,20,20,0.85)' : 'rgba(255,255,255,0.85)',
-            borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-          }
-        ]}
-      >
+    <Modal transparent visible={isVisible} onRequestClose={onClose}>
+      <TouchableOpacity style={styles.overlay} onPress={onClose} activeOpacity={1}>
+        <Animated.View
+          style={[
+            styles.bottomSheet,
+            {
+              height: bottomSheetHeight,
+              transform: [{ translateY }],
+              backgroundColor: isDark ? 'rgba(20,20,20,0.85)' : 'rgba(255,255,255,0.85)',
+              borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+            },
+          ]}
+        >
+          <BlurView intensity={50} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill}>
         <TouchableOpacity style={styles.closeButton} onPress={onClose}>
           <MaterialCommunityIcons name="close-circle" size={24} color={isDark ? '#999999' : '#666666'} />
         </TouchableOpacity>
@@ -65,8 +66,10 @@ const AppDetailsBottomSheet: React.FC<AppDetailsBottomSheetProps> = ({ isVisible
           </TouchableOpacity>
         </View>
 
-      </BlurView>
-    </Animated.View>
+          </BlurView>
+        </Animated.View>
+      </TouchableOpacity>
+    </Modal>
   );
 };
 
@@ -76,7 +79,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)', // Dim background
     justifyContent: 'flex-end',
     alignItems: 'center',
-    zIndex: 999,
   },
   bottomSheet: {
     width: '90%',

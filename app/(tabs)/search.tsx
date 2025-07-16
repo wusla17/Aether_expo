@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import React, { useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
+import React, { useMemo } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface ListItemProps {
@@ -47,10 +48,10 @@ const ALL_DATA = [
 
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
-  const [searchQuery, setSearchQuery] = useState('');
+  const { q: searchQuery = '' } = useLocalSearchParams<{ q: string }>();
 
   const filteredData = useMemo(() => {
-    const lowercasedQuery = searchQuery.toLowerCase();
+    const lowercasedQuery = (searchQuery || '').toLowerCase();
     if (!lowercasedQuery) {
       const grouped = ALL_DATA.reduce((acc, item) => {
         (acc[item.section] = acc[item.section] || []).push(item);
@@ -84,22 +85,11 @@ export default function SearchScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
-        <View style={styles.header}>
-          <MaterialCommunityIcons
-            name="magnify"
-            size={24}
-            color="#AAAAAA"
-            style={styles.headerIcon}
-          />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Ask Aether anything..."
-            placeholderTextColor="#AAAAAA"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.greetingContainer}>
+            <Text style={styles.handWave}>👋</Text>
+            <Text style={styles.greetingText}>Ask anything Aether...</Text>
+          </View>
           {Object.entries(filteredData).map(([sectionTitle, items]) => (
             <Section key={sectionTitle} title={sectionTitle}>
               {items.map(item => (
@@ -126,6 +116,21 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
+  },
+  greetingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 4,
+  },
+  handWave: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  greetingText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '500',
   },
   header: {
     flexDirection: 'row',

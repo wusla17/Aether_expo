@@ -15,6 +15,8 @@ import {
   useColorScheme,
   useWindowDimensions,
 } from 'react-native';
+import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler';
+import AppDetailsBottomSheet from './AppDetailsBottomSheet';
 
 // Define a type for the icon names to ensure type safety
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -40,6 +42,10 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const keyboardHeightAnim = useRef(new Animated.Value(0)).current;
   const bottomOffset = useRef(new Animated.Value(20)).current; // For Animated.add
 
+  const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
+  const bottomSheetAnim = useRef(new Animated.Value(0)).current;
+  const tabBarAnim = useRef(new Animated.Value(1)).current;
+
   const tabData = React.useMemo(() => tabs.map(t => ({
     ...t,
     isFocused: state.routes[state.index].name === t.name,
@@ -56,6 +62,18 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
       }
     });
   }, [isSearchBarVisible]);
+
+  useEffect(() => {
+    Animated.spring(bottomSheetAnim, {
+      toValue: isBottomSheetVisible ? 1 : 0,
+      useNativeDriver: false,
+    }).start();
+
+    Animated.spring(tabBarAnim, {
+      toValue: isBottomSheetVisible ? 0 : 1,
+      useNativeDriver: false,
+    }).start();
+  }, [isBottomSheetVisible]);
 
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
@@ -86,6 +104,9 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   }, []);
 
   const handleTabPress = (name: string) => {
+    if (isBottomSheetVisible) {
+      setIsBottomSheetVisible(false);
+    }
     const now = Date.now();
     const DOUBLE_PRESS_DELAY = 300;
     if (name === 'search') {
@@ -112,10 +133,18 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
 
   const handleSearchSubmit = () => {
     if (searchText.trim()) {
-      navigation.navigate('search', { q: searchText.trim() });
-      setIsSearchBarVisible(false);
-      Keyboard.dismiss();
-      setSearchText('');
+      router.setParams({ q: searchText.trim() });
+    }
+  };
+
+  const onHandlerStateChange = (event: any) => {
+    if (event.nativeEvent.oldState === State.ACTIVE) {
+      const { translationY } = event.nativeEvent;
+      if (translationY < -50) {
+        setIsBottomSheetVisible(true);
+      } else {
+        setIsBottomSheetVisible(false);
+      }
     }
   };
 
@@ -127,161 +156,172 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   );
 
   return (
-    <Animated.View
-      style={[
-        styles.wrapper,
-        isSearchBarVisible && styles.wrapperNoShadow,
-        {
-          height: searchBarAnim.interpolate({
-            inputRange: [0, 1],
-            outputRange: [70, 50],
-          }),
-          marginHorizontal: searchBarAnim.interpolate({
-            inputRange: [0, 1],
-            outputRange: [20, 40],
-          }),
-          bottom: isSearchBarVisible ? Animated.add(keyboardHeightAnim, bottomOffset) : 20,
-        },
-      ]}
-    >
-      <BlurView
-        intensity={25}
-        tint={isDark ? 'dark' : 'light'}
-        style={[
-          styles.blurContainer,
-          {
-            backgroundColor: isSearchBarVisible ? 'transparent' :
-              (isDark ? 'rgba(20,20,20,0.85)' : 'rgba(255,255,255,0.85)'),
-            borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-            borderWidth: isSearchBarVisible ? 0 : 1,
-          }
-        ]}
-      >
-        <View style={styles.tabBar}>
-          {isSearchBarVisible ? (
-            <Animated.View
-              style={[
-                styles.searchBarContainer,
-                {
-                  opacity: searchBarAnim,
-                  transform: [
+    <GestureHandlerRootView style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
+      <PanGestureHandler onHandlerStateChange={onHandlerStateChange}>
+        <Animated.View
+          style={[
+            styles.wrapper,
+            isSearchBarVisible && styles.wrapperNoShadow,
+            {
+              height: tabBarAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [50, 70],
+              }),
+              marginHorizontal: searchBarAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [20, 40],
+              }),
+              bottom: Animated.add(keyboardHeightAnim, isSearchBarVisible ? bottomOffset : new Animated.Value(20)),
+            },
+          ]}
+        >
+          <BlurView
+            intensity={25}
+            tint={isDark ? 'dark' : 'light'}
+            style={[
+              styles.blurContainer,
+              {
+                backgroundColor: isSearchBarVisible ? 'transparent' :
+                  (isDark ? 'rgba(20,20,20,0.85)' : 'rgba(255,255,255,0.85)'),
+                borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                borderWidth: isSearchBarVisible ? 0 : 1,
+              }
+            ]}
+          >
+            <View style={styles.tabBar}>
+              {isSearchBarVisible ? (
+                <Animated.View
+                  style={[
+                    styles.searchBarContainer,
                     {
-                      translateY: searchBarAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [20, 0],
-                      }),
+                      opacity: searchBarAnim,
+                      transform: [
+                        {
+                          translateY: searchBarAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [20, 0],
+                          }),
+                        },
+                      ],
                     },
-                  ],
-                },
-              ]}
-            >
-              <View style={[
-                styles.searchInputWrapper,
-                {
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                }
-              ]}>
-                <TouchableOpacity
-                  onPress={() => {
-                    setIsSearchBarVisible(false);
-                    Keyboard.dismiss();
-                  }}
-                  style={styles.searchIconWrapper}
-                >
-                  <MaterialCommunityIcons
-                    name="magnify"
-                    size={20}
-                    color={isDark ? '#999999' : '#666666'}
-                    style={styles.searchIconInside}
-                  />
-                </TouchableOpacity>
-                <TextInput
-                  ref={searchInputRef}
-                  style={[
-                    styles.searchInput,
-                    { color: isDark ? '#ffffff' : '#000000' }
                   ]}
-                  placeholder="Search..."
-                  placeholderTextColor={isDark ? '#999999' : '#666666'}
-                  value={searchText}
-                  onChangeText={setSearchText}
-                  onSubmitEditing={handleSearchSubmit}
-                  returnKeyType="search"
-                />
-              </View>
-            </Animated.View>
-          ) : (
-            <>
-              {/* Animated Selection Background */}
-              <View
-                style={[
-                  styles.selectionBackground,
-                  {
-                    left: state.index * tabItemWidth + (tabItemWidth - 70) / 2,
-                  }
-                ]}
-              >
-                <BlurView
-                  intensity={50}
-                  tint={isDark ? 'dark' : 'light'}
-                  style={[
-                    styles.selectionBlurView,
+                >
+                  <View style={[
+                    styles.searchInputWrapper,
                     {
-                      backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.3)',
-                      borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.5)',
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
                     }
-                  ]}
-                />
-              </View>
-
-              {tabData.map(({ name, icon, label, isFocused }: { name: string; icon: IconName; label: string; isFocused: boolean }) => (
-                <TouchableOpacity
-                  key={name}
-                  onPress={() => handleTabPress(name)}
-                  style={[styles.tabItem, { width: tabItemWidth }]}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.contentContainer}>
-                    <MotiView
-                      style={styles.iconContainer}
-                      animate={{
-                        scale: isFocused ? 1.1 : 1,
-                        translateY: isFocused ? -2 : 0,
+                  ]}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setIsSearchBarVisible(false);
+                        Keyboard.dismiss();
                       }}
-                      transition={{ type: 'timing', duration: 200 }}
+                      style={styles.searchIconWrapper}
                     >
                       <MaterialCommunityIcons
-                        name={icon}
+                        name="magnify"
                         size={20}
-                        color={
-                          isFocused
-                            ? (isDark ? '#ffffff' : '#000000')
-                            : (isDark ? '#999999' : '#666666')
-                        }
+                        color={isDark ? '#999999' : '#666666'}
+                        style={styles.searchIconInside}
                       />
-                    </MotiView>
-                    {isFocused && (
-                      <MotiView
-                        style={styles.labelContainer}
-                        animate={{ opacity: 1, translateY: 0 }}
-                        transition={{ type: 'spring', damping: 15, stiffness: 160 }}
-                      >
-                        <Text style={[
-                          styles.label,
-                          { color: isDark ? '#ffffff' : '#000000', fontWeight: '600' }
-                        ]}>
-                          {label}
-                        </Text>
-                      </MotiView>
-                    )}
+                    </TouchableOpacity>
+                    <TextInput
+                      ref={searchInputRef}
+                      style={[
+                        styles.searchInput,
+                        { color: isDark ? '#ffffff' : '#000000' }
+                      ]}
+                      placeholder="Search..."
+                      placeholderTextColor={isDark ? '#999999' : '#666666'}
+                      value={searchText}
+                      onChangeText={setSearchText}
+                      onSubmitEditing={handleSearchSubmit}
+                      returnKeyType="search"
+                    />
                   </View>
-                </TouchableOpacity>
-              ))}
-            </>
-          )}
-        </View>
-      </BlurView>
-    </Animated.View>
+                </Animated.View>
+              ) : (
+                <>
+                  {/* Animated Selection Background */}
+                  <Animated.View
+                    style={[
+                      styles.selectionBackground,
+                      {
+                        left: state.index * tabItemWidth + (tabItemWidth - 70) / 2,
+                        opacity: tabBarAnim,
+                      },
+                    ]}
+                  >
+                    <BlurView
+                      intensity={50}
+                      tint={isDark ? 'dark' : 'light'}
+                      style={[
+                        styles.selectionBlurView,
+                        {
+                          backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.3)',
+                          borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.5)',
+                        }
+                      ]}
+                    />
+                  </Animated.View>
+
+                  {tabData.map(({ name, icon, label, isFocused }: { name: string; icon: IconName; label: string; isFocused: boolean }) => (
+                    <TouchableOpacity
+                      key={name}
+                      onPress={() => handleTabPress(name)}
+                      style={[styles.tabItem, { width: tabItemWidth }]}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.contentContainer}>
+                        <MotiView
+                          style={styles.iconContainer}
+                          animate={{
+                            scale: isFocused ? 1.1 : 1,
+                            translateY: isFocused ? -2 : 0,
+                          }}
+                          transition={{ type: 'timing', duration: 200 }}
+                        >
+                          <MaterialCommunityIcons
+                            name={icon}
+                            size={20}
+                            color={
+                              isFocused
+                                ? (isDark ? '#ffffff' : '#000000')
+                                : (isDark ? '#999999' : '#666666')
+                            }
+                          />
+                        </MotiView>
+                        {isFocused && (
+                          <MotiView
+                            style={styles.labelContainer}
+                            animate={{ opacity: tabBarAnim, translateY: 0 }}
+                            transition={{ type: 'timing', duration: 200 }}
+                          >
+                            <Text style={[
+                              styles.label,
+                              { color: isDark ? '#ffffff' : '#000000', fontWeight: '600' }
+                            ]}>
+                              {label}
+                            </Text>
+                          </MotiView>
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </>
+              )}
+            </View>
+          </BlurView>
+        </Animated.View>
+      </PanGestureHandler>
+      <AppDetailsBottomSheet
+        isVisible={isBottomSheetVisible}
+        onClose={() => setIsBottomSheetVisible(false)}
+        isDark={isDark}
+        animationValue={bottomSheetAnim}
+      />
+    </GestureHandlerRootView>
   );
 }
 
