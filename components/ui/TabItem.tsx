@@ -1,39 +1,54 @@
-import React, { useEffect } from 'react';
-import { TouchableOpacity } from 'react-native';
-import Animated, {
-  useSharedValue,
-  withSpring,
-  useAnimatedStyle,
-  interpolate,
-  Extrapolate,
-} from 'react-native-reanimated';
 
-interface TabItemProps {
+import { Pressable, StyleSheet, useColorScheme } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  withTiming,
+} from 'react-native-reanimated';
+import { SvgProps } from 'react-native-svg';
+
+type TabItemProps = {
   isFocused: boolean;
   onPress: () => void;
-  icon: any; // This should be a LucideIcon component
+  icon: React.FC<SvgProps>;
   isDark: boolean;
-}
+};
 
-export default function TabItem({ isFocused, onPress, icon: TabIcon, isDark }: TabItemProps) {
-  const tabAnimation = useSharedValue(0);
-
-  useEffect(() => {
-    tabAnimation.value = withSpring(isFocused ? 1 : 0, { damping: 10, stiffness: 100 });
-  }, [isFocused, tabAnimation]);
-
-  const animatedTabStyle = useAnimatedStyle(() => {
-    const translateY = interpolate(tabAnimation.value, [0, 1], [0, -10], Extrapolate.CLAMP);
+export default function TabItem({
+  isFocused,
+  onPress,
+  icon: Icon,
+  isDark,
+}: TabItemProps) {
+  const animatedStyle = useAnimatedStyle(() => {
     return {
-      transform: [{ translateY }],
+      transform: [
+        {
+          translateY: withTiming(isFocused ? -5 : 0, {
+            duration: 200,
+          }),
+        },
+      ],
+      opacity: withTiming(isFocused ? 1 : 0.7, { duration: 200 }),
     };
   });
 
   return (
-    <TouchableOpacity onPress={onPress} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Animated.View style={animatedTabStyle}>
-        <TabIcon size={24} color={isFocused ? (isDark ? '#fff' : '#888') : '#888'} />
+    <Pressable onPress={onPress} style={styles.tabItem}>
+      <Animated.View style={animatedStyle}>
+        <Icon
+          width={24}
+          height={24}
+          color={isDark ? '#fff' : '#000'}
+        />
       </Animated.View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
+
+const styles = StyleSheet.create({
+  tabItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

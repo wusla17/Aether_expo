@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Tabs } from 'expo-router';
+import 'react-native-gesture-handler';
 import CustomTabBar from '../../components/CustomTabBar';
 
 export default function TabLayout() {

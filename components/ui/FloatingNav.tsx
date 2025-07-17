@@ -1,14 +1,26 @@
-
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useRouter } from 'expo-router';
 import { Calendar, CheckSquare, Home, Search } from 'lucide-react-native';
-import { Dimensions, StyleSheet, TouchableOpacity, useColorScheme, View } from 'react-native';
+import {
+  Dimensions,
+  StyleSheet,
+  TouchableOpacity,
+  useColorScheme,
+  View,
+} from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import { Canvas, Path, Skia, Blur, LinearGradient, vec } from '@shopify/react-native-skia';
+import {
+  Blur,
+  Canvas,
+  LinearGradient,
+  Path,
+  Skia,
+  vec,
+} from '@shopify/react-native-skia';
 import { useEffect } from 'react';
 import TabItem from './TabItem'; // Import the new TabItem component
 
@@ -21,8 +33,8 @@ const tabs = [
 const { width: screenWidth } = Dimensions.get('window');
 const fabSize = 48;
 const navWidth = screenWidth * 0.9;
-const navHeight = 70;
-const fabInitialY = -30;
+const navHeight = 60; // Adjusted height
+const fabInitialY = -25; // Adjusted initial Y
 
 export default function FloatingNav({ state, navigation }: BottomTabBarProps) {
   const router = useRouter();
@@ -73,45 +85,49 @@ export default function FloatingNav({ state, navigation }: BottomTabBarProps) {
         </TouchableOpacity>
       </Animated.View>
       <Canvas style={{ width: navWidth, height: navHeight }}>
-        <Path path={path} >
-            <LinearGradient
-                start={vec(0, 0)}
-                end={vec(navWidth, navHeight)}
-                colors={isDark ? ['rgba(40, 40, 40, 0.7)', 'rgba(20, 20, 20, 0.7)'] : ['rgba(255, 255, 255, 0.7)', 'rgba(230, 230, 230, 0.7)']}
-            />
-            <Blur blur={15} />
+        <Path path={path}>
+          <LinearGradient
+            start={vec(0, 0)}
+            end={vec(navWidth, navHeight)}
+            colors={
+              isDark
+                ? ['rgba(40, 40, 40, 0.7)', 'rgba(20, 20, 20, 0.7)']
+                : ['rgba(255, 255, 255, 0.7)', 'rgba(230, 230, 230, 0.7)']
+            }
+          />
+          <Blur blur={15} />
         </Path>
       </Canvas>
-        <View style={styles.tabsContainer}>
-          {filteredRoutes.map((route, index) => {
-            const isFocused = state.index === index;
+      <View style={styles.tabsContainer}>
+        {filteredRoutes.map((route, index) => {
+          const isFocused = state.index === index;
 
-            const onPress = () => {
-              const event = navigation.emit({
-                type: 'tabPress',
-                target: route.key,
-                canPreventDefault: true,
-              });
+          const onPress = () => {
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
 
-              if (!isFocused && !event.defaultPrevented) {
-                navigation.navigate(route.name);
-              }
-            };
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(route.name);
+            }
+          };
 
-            const tabInfo = tabs.find((tab) => tab.name === route.name);
-            const TabIcon = tabInfo?.icon || Home;
+          const tabInfo = tabs.find((tab) => tab.name === route.name);
+          const TabIcon = tabInfo?.icon || Home;
 
-            return (
-              <TabItem
-                key={route.key}
-                isFocused={isFocused}
-                onPress={onPress}
-                icon={TabIcon}
-                isDark={isDark}
-              />
-            );
-          })}
-        </View>
+          return (
+            <TabItem
+              key={route.key}
+              isFocused={isFocused}
+              onPress={onPress}
+              icon={TabIcon}
+              isDark={isDark}
+            />
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -130,32 +146,23 @@ const styles = StyleSheet.create({
     position: 'absolute',
     alignSelf: 'center',
     zIndex: 1,
+    top: -20, // Adjusted to move the FAB up
   },
   fab: {
-    width: 120,
+    width: 100, // Adjusted width
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'red',
+    backgroundColor: 'transparent', // Made transparent
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 8,
   },
   tabsContainer: {
     position: 'absolute',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    paddingHorizontal: 20,
+    paddingHorizontal: 10, // Adjusted padding
     width: '100%',
     height: '100%',
-  },
-  tabItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });
