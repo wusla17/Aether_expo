@@ -14,7 +14,6 @@ import {
   View,
 } from 'react-native';
 import GlassmorphicModal from '@/components/ui/GlassmorphicModal';
-import { useAppColorScheme } from '@/contexts/ThemeContext';
 
 interface SettingItemProps {
   icon: keyof typeof Feather.glyphMap;
@@ -77,7 +76,7 @@ const StatCard = ({ icon, label, value, isDarkMode }: StatCardProps) => (
 );
 
 export default function SettingsScreen() {
-  const { isDarkMode, toggleDarkMode } = useAppColorScheme();
+  const [isDarkMode, setIsDarkMode] = useState(true); // Default to dark mode
   const [hapticsEnabled, setHapticsEnabled] = useState(true);
   const [appUsage, setAppUsage] = useState(0);
   const [completedTodos, setCompletedTodos] = useState(0);
@@ -86,6 +85,8 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     const fetchSettings = async () => {
+      const darkMode = await AsyncStorage.getItem('isDarkMode');
+      setIsDarkMode(darkMode !== 'false'); // Default to true if not set
       const haptics = await AsyncStorage.getItem('hapticsEnabled');
       setHapticsEnabled(haptics !== 'false');
     };
@@ -115,12 +116,10 @@ export default function SettingsScreen() {
     return () => clearInterval(usageInterval);
   }, []);
 
-  const toggleDarkModeHandler = async () => {
+  const toggleDarkMode = async () => {
     const newValue = !isDarkMode;
-    toggleDarkMode(newValue);
-    if (newValue) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
+    setIsDarkMode(newValue);
+    await AsyncStorage.setItem('isDarkMode', newValue.toString());
   };
 
   const toggleHaptics = async () => {
@@ -143,8 +142,7 @@ export default function SettingsScreen() {
     setAppUsage(0);
     setCompletedTodos(0);
     setTotalTodos(0);
-    // Optionally, you can show a toast message or another alert here
-    // Alert.alert('Data Cleared', 'All local data has been cleared.');
+    Alert.alert('Data Cleared', 'All local data has been cleared.');
   };
 
   const handleCancelClear = () => {
@@ -170,7 +168,7 @@ export default function SettingsScreen() {
           icon="moon"
           label="Dark Mode"
           value={isDarkMode}
-          onValueChange={toggleDarkModeHandler}
+          onValueChange={toggleDarkMode}
           isDarkMode={isDarkMode}
         />
       </View>

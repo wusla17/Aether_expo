@@ -1,7 +1,8 @@
-feat: Implement GlassmorphicModal for data clear confirmation
+feat: Implement app-wide theme switching
 
-Replaced native Alert.alert with a custom, visually enhanced GlassmorphicModal for the 'Clear All Local Data' confirmation in settings. This provides a more modern and branded user experience with a liquid glass effect and rounded corners.
+Introduced a `ThemeContext` to manage and propagate the dark/light mode state across the entire application. This ensures that theme changes made in the settings screen are reflected immediately throughout the app.
 
-- Created `components/ui/GlassmorphicModal.tsx` for the new modal component.
-- Updated `app/settings.tsx` to use `GlassmorphicModal` and manage its visibility state.
-- Installed `@react-native-community/blur` dependency for the blur effect.
+- Created `contexts/ThemeContext.tsx` to provide theme state and a toggle function.
+- Modified `app/_layout.tsx` to wrap the app with `ThemeProvider` and consume the theme state.
+- Updated `hooks/useColorScheme.ts` to export `useAppColorScheme` from the new context.
+- Modified `app/settings.tsx` to use the `toggleDarkMode` function from the `ThemeContext`.

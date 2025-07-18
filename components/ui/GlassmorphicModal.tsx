@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
   modalView: {
     margin: 20,
     borderRadius: 20,
-    padding: 35,
+    padding: 20, // Reduced padding for smaller height
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {
@@ -94,49 +94,50 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
-    width: '80%',
-    maxWidth: 400,
+    width: '70%',
+    maxWidth: 300,
     overflow: 'hidden', // Ensures content respects border radius
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 15,
+    marginBottom: 8, // Reduced margin
     textAlign: 'center',
   },
   modalMessage: {
-    marginBottom: 20,
+    marginBottom: 15, // Reduced margin
     textAlign: 'center',
-    fontSize: 16,
+    fontSize: 14,
+    numberOfLines: 1, // Force single line
+    ellipsizeMode: 'tail', // Add ellipsis if text overflows
   },
   buttonContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
     width: '100%',
+    marginTop: 10,
   },
   button: {
     borderRadius: 10,
-    padding: 12,
-    elevation: 2,
-    flex: 1,
-    marginHorizontal: 5,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
   },
   cancelButton: {
-    backgroundColor: '#E0E0E0',
+    // No background color
   },
   clearButton: {
-    backgroundColor: '#FF453A',
+    // No background color, text color handled by clearButtonText
   },
   buttonText: {
     fontWeight: 'bold',
     textAlign: 'center',
-    fontSize: 16,
+    fontSize: 15,
   },
   cancelButtonText: {
-    color: '#333',
+    color: 'rgba(255,255,255,0.7)', // Blended white color
   },
   clearButtonText: {
-    color: 'white',
+    color: '#FF3B30', // iOS red for destructive action
   },
 });
 

@@ -57,16 +57,14 @@ import { Appbar, Button, Card, Checkbox, Chip, Text, useTheme } from 'react-nati
 
 import { moveToTrash } from '@/utils/database';
 
-const TaskItem = ({ item, onDelete }: { item: Task, onDelete: (id: string) => void }) => {
+const TaskItem = ({ item }: { item: Task }) => {
 	const theme = useTheme();
 	return (
 		<Card style={styles.taskCard}>
 			<Card.Content>
 				<View style={styles.taskHeader}>
 					<Checkbox status={item.done ? 'checked' : 'unchecked'} />
-					<Text style={styles.taskTitle}>{item.title}</Text>
-					<View style={{ flex: 1 }} />
-					<Button onPress={() => onDelete(item.id)}>Delete</Button>
+					<Text style={[styles.taskTitle, { color: '#FFFFFF' }]}>{item.title}</Text>
 				</View>
 				<View style={styles.taskDetails}>
 					{item.date && (
@@ -76,7 +74,7 @@ const TaskItem = ({ item, onDelete }: { item: Task, onDelete: (id: string) => vo
 								size={14}
 								color={theme.colors.onSurfaceVariant}
 							/>
-							<Text style={styles.detailText}>{item.date}</Text>
+							<Text style={[styles.detailText, { color: '#AAAAAA' }]}>{item.date}</Text>
 						</View>
 					)}
 					{item.comments > 0 && (
@@ -86,7 +84,7 @@ const TaskItem = ({ item, onDelete }: { item: Task, onDelete: (id: string) => vo
 								size={14}
 								color={theme.colors.onSurfaceVariant}
 							/>
-							<Text style={styles.detailText}>{item.comments}</Text>
+							<Text style={[styles.detailText, { color: '#AAAAAA' }]}>{item.comments}</Text>
 						</View>
 					)}
 					{item.attachments > 0 && (
@@ -96,7 +94,7 @@ const TaskItem = ({ item, onDelete }: { item: Task, onDelete: (id: string) => vo
 								size={14}
 								color={theme.colors.onSurfaceVariant}
 							/>
-							<Text style={styles.detailText}>{item.attachments}</Text>
+							<Text style={[styles.detailText, { color: '#AAAAAA' }]}>{item.attachments}</Text>
 						</View>
 					)}
 					{item.tag && (
@@ -124,20 +122,12 @@ export default function TodoScreen() {
 	const theme = useTheme();
 	const [tasks, setTasks] = useState<Task[]>(initialTasks);
 
-	const handleDelete = (id: string) => {
-		moveToTrash(id, 'todo');
-		setTasks(tasks.filter((task: Task) => task.id !== id));
-	};
-
 	return (
 		<View
-			style={[
-				styles.container,
-				{ backgroundColor: theme.colors.background },
-			]}
+			style={styles.container}
 		>
-			<Appbar.Header>
-				<Appbar.Content title="To-Do" />
+			<Appbar.Header style={{ backgroundColor: '#1C1C1C' }}>
+				<Appbar.Content title="To-Do" titleStyle={{ color: '#FFFFFF' }} />
 			</Appbar.Header>
 
 			<View style={styles.actionsContainer}>
@@ -154,7 +144,7 @@ export default function TodoScreen() {
 			<FlatList
 				data={tasks}
 				keyExtractor={(item) => item.id}
-				renderItem={({ item }) => <TaskItem item={item} onDelete={handleDelete} />}
+				renderItem={({ item }) => <TaskItem item={item} />}
 				contentContainerStyle={styles.listContent}
 				showsVerticalScrollIndicator={false}
 			/>
@@ -165,6 +155,7 @@ export default function TodoScreen() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
+		backgroundColor: '#1C1C1C', // Fixed dark background
 	},
 	actionsContainer: {
 		flexDirection: 'row',
