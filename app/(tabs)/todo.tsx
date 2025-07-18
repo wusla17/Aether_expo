@@ -1,9 +1,9 @@
 import { Feather } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { FlatList, StyleSheet, View } from 'react-native';
-import { Appbar, Button, Card, Checkbox, Chip, Text, useTheme } from 'react-native-paper';
+import { useState } from 'react';
 
-const tasks = [
+const initialTasks = [
 	{
 		id: '1',
 		title: 'Finish user onboarding',
@@ -51,9 +51,13 @@ const tasks = [
 	},
 ];
 
-type Task = (typeof tasks)[0];
+type Task = (typeof initialTasks)[0];
 
-const TaskItem = ({ item }: { item: Task }) => {
+import { Appbar, Button, Card, Checkbox, Chip, Text, useTheme } from 'react-native-paper';
+
+import { moveToTrash } from '@/utils/database';
+
+const TaskItem = ({ item, onDelete }: { item: Task, onDelete: (id: string) => void }) => {
 	const theme = useTheme();
 	return (
 		<Card style={styles.taskCard}>
@@ -61,6 +65,8 @@ const TaskItem = ({ item }: { item: Task }) => {
 				<View style={styles.taskHeader}>
 					<Checkbox status={item.done ? 'checked' : 'unchecked'} />
 					<Text style={styles.taskTitle}>{item.title}</Text>
+					<View style={{ flex: 1 }} />
+					<Button onPress={() => onDelete(item.id)}>Delete</Button>
 				</View>
 				<View style={styles.taskDetails}>
 					{item.date && (
@@ -116,6 +122,12 @@ const TaskItem = ({ item }: { item: Task }) => {
 
 export default function TodoScreen() {
 	const theme = useTheme();
+	const [tasks, setTasks] = useState<Task[]>(initialTasks);
+
+	const handleDelete = (id: string) => {
+		moveToTrash(id, 'todo');
+		setTasks(tasks.filter((task: Task) => task.id !== id));
+	};
 
 	return (
 		<View
@@ -142,7 +154,7 @@ export default function TodoScreen() {
 			<FlatList
 				data={tasks}
 				keyExtractor={(item) => item.id}
-				renderItem={({ item }) => <TaskItem item={item} />}
+				renderItem={({ item }) => <TaskItem item={item} onDelete={handleDelete} />}
 				contentContainerStyle={styles.listContent}
 				showsVerticalScrollIndicator={false}
 			/>

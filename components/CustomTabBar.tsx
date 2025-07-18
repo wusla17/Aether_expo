@@ -31,22 +31,7 @@ const tabs: { name: string; icon: IconName; label: string }[] = [
   { name: 'search', icon: 'magnify', label: 'Search' },
 ];
 
-// App details for bottom sheet
-const appDetails = {
-  name: "My App",
-  version: "1.0.0",
-  description: "A beautiful and functional app with modern design",
-  features: [
-    "Home dashboard with quick access",
-    "Smart to-do management",
-    "Calendar integration",
-    "Powerful search functionality",
-    "Dark/Light mode support",
-    "Haptic feedback"
-  ],
-  developer: "Your Name",
-  lastUpdated: "July 2025"
-};
+
 
 export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const { width: screenWidth } = useWindowDimensions();
@@ -63,6 +48,30 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const tabBarBottomAnim = useRef(new Animated.Value(25)).current;
   const bottomSheetAnim = useRef(new Animated.Value(0)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
+
+  const bottomSheetPanResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        // Set responder only if the user is dragging vertically
+        return Math.abs(gestureState.dy) > 5;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        // Move the bottom sheet with the gesture
+        // We'll use a direct manipulation of the value for performance
+        // This requires the animated value to be set up for it.
+        // For now, we'll just log the movement.
+        console.log('dy:', gestureState.dy);
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        // On release, decide whether to snap open or closed
+        if (gestureState.dy > 50) {
+          hideBottomSheet();
+        } else {
+          showBottomSheet();
+        }
+      },
+    })
+  ).current;
 
   const tabData = React.useMemo(() => tabs.map(t => ({
     ...t,
@@ -95,24 +104,7 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
     })
   ).current;
 
-  // Bottom sheet pan responder for dismissal
-  const bottomSheetPanResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (evt: GestureResponderEvent, gestureState: PanResponderGestureState) => {
-        return Math.abs(gestureState.dy) > 10;
-      },
-      onPanResponderRelease: (evt: GestureResponderEvent, gestureState: PanResponderGestureState) => {
-        const { dy, vy } = gestureState;
-        
-        if (dy > 50 && vy > 0.5) {
-          // Swipe down - hide bottom sheet
-          hideBottomSheet();
-        }
-      },
-    })
-  ).current;
-
-  const showBottomSheet = () => {
+  const showBottomSheet = React.useCallback(() => {
     if (isBottomSheetVisible) return;
     setIsBottomSheetVisible(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -130,9 +122,9 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
         useNativeDriver: false,
       }),
     ]).start();
-  };
+  }, [isBottomSheetVisible, bottomSheetAnim, overlayAnim]);
 
-  const hideBottomSheet = () => {
+  const hideBottomSheet = React.useCallback(() => {
     if (!isBottomSheetVisible) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
@@ -151,21 +143,9 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
     ]).start(() => {
       setIsBottomSheetVisible(false);
     });
-  };
+  }, [isBottomSheetVisible, bottomSheetAnim, overlayAnim]);
 
-  useEffect(() => {
-    Animated.timing(searchBarAnim, {
-      toValue: isSearchBarVisible ? 1 : 0,
-      duration: 300,
-      useNativeDriver: false,
-    }).start(() => {
-      if (isSearchBarVisible) {
-        searchInputRef.current?.focus();
-      }
-    });
-  }, [isSearchBarVisible]);
-
-  const handleTabPress = (name: string) => {
+  const handleTabPress = React.useCallback((name: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const now = Date.now();
     const DOUBLE_PRESS_DELAY = 300;
@@ -175,13 +155,7 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
         setIsSearchBarVisible(true);
       } else {
         lastTap.current = now;
-        if (isSearchBarVisible) {
-          setIsSearchBarVisible(false);
-          Keyboard.dismiss();
-          setSearchText('');
-        } else {
-          navigation.navigate(name);
-        }
+        navigation.navigate(name);
       }
     } else {
       if (isSearchBarVisible) {
@@ -190,13 +164,27 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
       }
       navigation.navigate(name);
     }
-  };
+  }, [isSearchBarVisible, lastTap, navigation]);
 
-  const handleSearchSubmit = () => {
+  const handleSearchSubmit = React.useCallback(() => {
     if (searchText.trim()) {
       router.setParams({ q: searchText.trim() });
     }
-  };
+  }, [searchText, router]);
+
+  // Animate search bar
+  useEffect(() => {
+    Animated.spring(searchBarAnim, {
+      toValue: isSearchBarVisible ? 1 : 0,
+      useNativeDriver: false,
+      tension: 100,
+      friction: 10,
+    }).start(() => {
+      if (isSearchBarVisible) {
+        searchInputRef.current?.focus();
+      }
+    });
+  }, [isSearchBarVisible, searchBarAnim]);
 
   // Updated sizes for larger tab bar
   const tabBarPadding = 6;
@@ -464,8 +452,8 @@ const styles = StyleSheet.create({
   selectionBackground: {
     position: 'absolute',
     top: '50%',
-    width: 64, // Increased from 52
-    height: 54, // Increased from 42
+    width: 68, // Increased from 52
+    height: 58, // Increased from 42
     marginTop: -27, // Adjusted from -21
     borderRadius: 27, // Adjusted from 21
     borderWidth: 1,

@@ -4,6 +4,8 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { Appbar, Card, Text, useTheme } from 'react-native-paper';
 import { getNoteById, updateNoteLastAccessed, Note } from '@/utils/database';
 
+import { moveToTrash } from '@/utils/database';
+
 export default function NoteView() {
   const { id } = useLocalSearchParams();
   const [note, setNote] = useState<Note | null>(null);
@@ -21,6 +23,13 @@ export default function NoteView() {
     }
   }, [id]);
 
+  const handleDelete = () => {
+    if (note) {
+      moveToTrash(note.id, 'note');
+      router.back();
+    }
+  };
+
   if (!note) return <Text style={styles.loadingText}>Loading...</Text>;
 
   return (
@@ -28,6 +37,7 @@ export default function NoteView() {
       <Appbar.Header>
         <Appbar.BackAction onPress={() => router.back()} />
         <Appbar.Content title={note.title} />
+        <Appbar.Action icon="delete" onPress={handleDelete} />
       </Appbar.Header>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Card>

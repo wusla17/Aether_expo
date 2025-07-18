@@ -28,12 +28,19 @@ const appDetails = {
   lastUpdated: 'July 2025',
 };
 
+interface AppDetailsSheetProps {
+  bottomSheetAnim: Animated.Value;
+  bottomSheetPanResponder: any; // You might want to refine this type if you have a specific PanResponder type
+  hideBottomSheet: () => void;
+  isBottomSheetVisible: boolean;
+}
+
 export default function AppDetailsSheet({
   bottomSheetAnim,
   bottomSheetPanResponder,
   hideBottomSheet,
   isBottomSheetVisible,
-}) {
+}: AppDetailsSheetProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
@@ -85,7 +92,7 @@ export default function AppDetailsSheet({
           style={styles.bottomSheetContent}
           showsVerticalScrollIndicator={false}
           onScroll={({ nativeEvent }) => {
-            if (nativeEvent.contentOffset.y === 0 && nativeEvent.velocity.y < -0.5) {
+            if (nativeEvent.contentOffset.y === 0 && nativeEvent.velocity && nativeEvent.velocity.y < -0.5) {
               hideBottomSheet();
             }
           }}

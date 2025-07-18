@@ -1,6 +1,7 @@
-feat: Improve bottom navbar icon and label alignment and animation
+feat: Implement GlassmorphicModal for data clear confirmation
 
-- Removed the liquid flow animation from the selection circle.
-- Implemented a subtle flow animation for tab icons on selection.
-- Adjusted icon and label vertical positioning for better centering within the selection circle and reduced the gap between them.
-- Corrected the horizontal positioning of the selection circle to ensure icons are perfectly centered.
+Replaced native Alert.alert with a custom, visually enhanced GlassmorphicModal for the 'Clear All Local Data' confirmation in settings. This provides a more modern and branded user experience with a liquid glass effect and rounded corners.
+
+- Created `components/ui/GlassmorphicModal.tsx` for the new modal component.
+- Updated `app/settings.tsx` to use `GlassmorphicModal` and manage its visibility state.
+- Installed `@react-native-community/blur` dependency for the blur effect.

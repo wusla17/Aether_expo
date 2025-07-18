@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -156,6 +157,7 @@ export default function HomeScreen() {
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [isModalRendered, setIsModalRendered] = useState(false);
   const menuAnimation = useRef(new Animated.Value(0)).current;
+  const router = useRouter();
 
   useEffect(() => {
     if (isMenuVisible) {
@@ -248,9 +250,17 @@ export default function HomeScreen() {
                   key={item.id}
                   style={styles.menuItem}
                   disabled={item.title === 'Log out'}
+                  onPress={() => {
+                    if (item.title === 'Settings') {
+                      router.push('/settings');
+                    } else if (item.title === 'Trash') {
+                      router.push('/trash');
+                    }
+                    setIsMenuVisible(false); // Close the modal after navigating
+                  }}
                 >
                   <MaterialCommunityIcons
-                    name={item.icon as any}
+                    name={item.icon as React.ComponentProps<typeof MaterialCommunityIcons>['name']}
                     size={20}
                     color={item.title === 'Log out' ? '#E57373' : '#AAAAAA'}
                     style={{ marginRight: 16 }}
