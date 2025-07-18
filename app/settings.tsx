@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import GlassmorphicModal from '@/components/ui/GlassmorphicModal';
+import { useAppColorScheme } from '@/contexts/ThemeContext';
 
 interface SettingItemProps {
   icon: keyof typeof Feather.glyphMap;
@@ -76,7 +77,7 @@ const StatCard = ({ icon, label, value, isDarkMode }: StatCardProps) => (
 );
 
 export default function SettingsScreen() {
-  const [isDarkMode, setIsDarkMode] = useState(true); // Default to dark mode
+  const { isDarkMode, toggleDarkMode } = useAppColorScheme();
   const [hapticsEnabled, setHapticsEnabled] = useState(true);
   const [appUsage, setAppUsage] = useState(0);
   const [completedTodos, setCompletedTodos] = useState(0);
@@ -85,8 +86,6 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     const fetchSettings = async () => {
-      const darkMode = await AsyncStorage.getItem('isDarkMode');
-      setIsDarkMode(darkMode !== 'false'); // Default to true if not set
       const haptics = await AsyncStorage.getItem('hapticsEnabled');
       setHapticsEnabled(haptics !== 'false');
     };
@@ -116,10 +115,12 @@ export default function SettingsScreen() {
     return () => clearInterval(usageInterval);
   }, []);
 
-  const toggleDarkMode = async () => {
+  const toggleDarkModeHandler = async () => {
     const newValue = !isDarkMode;
-    setIsDarkMode(newValue);
-    await AsyncStorage.setItem('isDarkMode', newValue.toString());
+    toggleDarkMode(newValue);
+    if (newValue) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
   };
 
   const toggleHaptics = async () => {
@@ -169,7 +170,7 @@ export default function SettingsScreen() {
           icon="moon"
           label="Dark Mode"
           value={isDarkMode}
-          onValueChange={toggleDarkMode}
+          onValueChange={toggleDarkModeHandler}
           isDarkMode={isDarkMode}
         />
       </View>

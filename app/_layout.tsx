@@ -1,41 +1,22 @@
 import { ThemedText } from '@/components/ThemedText';
 import { initDb } from '@/utils/database';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, useColorScheme, View } from 'react-native'; // Keep useColorScheme for fallback
+import { ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { MD3DarkTheme, MD3LightTheme, Provider as PaperProvider } from 'react-native-paper';
 import { enableScreens } from 'react-native-screens';
+import { ThemeProvider, useAppColorScheme } from '@/contexts/ThemeContext';
 
 enableScreens();
 
-export default function RootLayout() {
-  // State for theme preference, initialized from AsyncStorage
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(true); // Default to true
-  const [isLoadingTheme, setIsLoadingTheme] = useState(true); // Loading state for theme
-
-  // State for database initialization
+function RootLayoutContent() {
+  const { isDarkMode, toggleDarkMode } = useAppColorScheme();
   const [isDbReady, setIsDbReady] = useState(false);
   const [dbError, setDbError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadSettingsAndDb = async () => {
-      // Load theme preference from AsyncStorage
-      try {
-        const storedDarkMode = await AsyncStorage.getItem('isDarkMode');
-        // If 'isDarkMode' is not set or is 'true', use dark mode. Otherwise, use light mode.
-        setIsDarkMode(storedDarkMode !== 'false');
-      } catch (error) {
-        console.error("Error loading theme preference:", error);
-        // Fallback to system preference if AsyncStorage fails
-        const systemColorScheme = useColorScheme();
-        setIsDarkMode(systemColorScheme === 'dark');
-      } finally {
-        setIsLoadingTheme(false); // Theme loading is complete
-      }
-
-      // Initialize database
+    const initializeDb = async () => {
       try {
         await initDb();
         setIsDbReady(true);
@@ -44,16 +25,12 @@ export default function RootLayout() {
         setDbError("Failed to initialize the database. Please restart the app.");
       }
     };
-
-    loadSettingsAndDb();
+    initializeDb();
   }, []);
 
-  // Determine the theme based on the loaded preference
-  const isDarkTheme = isDarkMode; // Directly use the state
-  const theme = isDarkTheme ? MD3DarkTheme : MD3LightTheme;
+  const theme = isDarkMode ? MD3DarkTheme : MD3LightTheme;
 
-  // Show loading indicator while theme and DB are being initialized
-  if (isLoadingTheme || !isDbReady) {
+  if (!isDbReady) {
     return (
       <GestureHandlerRootView style={{ flex: 1 }}>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -63,7 +40,6 @@ export default function RootLayout() {
     );
   }
 
-  // Show error message if database initialization failed
   if (dbError) {
     return (
       <GestureHandlerRootView style={{ flex: 1 }}>
@@ -74,18 +50,17 @@ export default function RootLayout() {
     );
   }
 
-  // Render the app once everything is ready
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <PaperProvider theme={theme}>
         <Stack
           screenOptions={{
             headerStyle: {
-              backgroundColor: isDarkTheme ? '#000000' : '#ffffff',
+              backgroundColor: isDarkMode ? '#000000' : '#ffffff',
             },
-            headerTintColor: isDarkTheme ? '#ffffff' : '#000000',
+            headerTintColor: isDarkMode ? '#ffffff' : '#000000',
             headerTitleStyle: {
-              color: isDarkTheme ? '#ffffff' : '#000000',
+              color: isDarkMode ? '#ffffff' : '#000000',
             },
             headerShadowVisible: false,
           }}
@@ -118,5 +93,13 @@ export default function RootLayout() {
         </Stack>
       </PaperProvider>
     </GestureHandlerRootView>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <RootLayoutContent />
+    </ThemeProvider>
   );
 }
