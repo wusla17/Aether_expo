@@ -115,6 +115,12 @@ export default function RootLayout() {
               headerShown: false,
             }}
           />
+          <Stack.Screen
+            name="HelpSupportScreen"
+            options={{
+              headerShown: false,
+            }}
+          />
         </Stack>
       </PaperProvider>
     </GestureHandlerRootView>

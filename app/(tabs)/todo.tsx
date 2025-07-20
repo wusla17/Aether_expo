@@ -53,12 +53,9 @@ const initialTasks = [
 
 type Task = (typeof initialTasks)[0];
 
-import { Appbar, Button, Card, Checkbox, Chip, Text, useTheme } from 'react-native-paper';
-
-import { moveToTrash } from '@/utils/database';
+import { Appbar, Button, Card, Checkbox, Chip, Text } from 'react-native-paper';
 
 const TaskItem = ({ item }: { item: Task }) => {
-	const theme = useTheme();
 	return (
 		<Card style={styles.taskCard}>
 			<Card.Content>
@@ -72,7 +69,7 @@ const TaskItem = ({ item }: { item: Task }) => {
 							<Feather
 								name="calendar"
 								size={14}
-								color={theme.colors.onSurfaceVariant}
+								color="#AAAAAA"
 							/>
 							<Text style={[styles.detailText, { color: '#AAAAAA' }]}>{item.date}</Text>
 						</View>
@@ -82,7 +79,7 @@ const TaskItem = ({ item }: { item: Task }) => {
 							<Feather
 								name="message-square"
 								size={14}
-								color={theme.colors.onSurfaceVariant}
+								color="#AAAAAA"
 							/>
 							<Text style={[styles.detailText, { color: '#AAAAAA' }]}>{item.comments}</Text>
 						</View>
@@ -92,7 +89,7 @@ const TaskItem = ({ item }: { item: Task }) => {
 							<Feather
 								name="paperclip"
 								size={14}
-								color={theme.colors.onSurfaceVariant}
+								color="#AAAAAA"
 							/>
 							<Text style={[styles.detailText, { color: '#AAAAAA' }]}>{item.attachments}</Text>
 						</View>
@@ -119,8 +116,7 @@ const TaskItem = ({ item }: { item: Task }) => {
 };
 
 export default function TodoScreen() {
-	const theme = useTheme();
-	const [tasks, setTasks] = useState<Task[]>(initialTasks);
+	const [tasks] = useState<Task[]>(initialTasks);
 
 	return (
 		<View

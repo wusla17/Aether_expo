@@ -4,8 +4,10 @@ import React, { useMemo } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
 interface ListItemProps {
-  iconName: string;
+  iconName: IconName;
   title: string;
   workspace: string;
   onPress?: () => void;

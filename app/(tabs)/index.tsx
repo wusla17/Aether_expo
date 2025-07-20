@@ -255,6 +255,8 @@ export default function HomeScreen() {
                       router.push('/settings');
                     } else if (item.title === 'Trash') {
                       router.push('/trash');
+                    } else if (item.title === 'Help & support') {
+                      router.push('/HelpSupportScreen');
                     }
                     setIsMenuVisible(false); // Close the modal after navigating
                   }}

@@ -30,14 +30,12 @@ const appDetails = {
 
 interface AppDetailsSheetProps {
   bottomSheetAnim: Animated.Value;
-  bottomSheetPanResponder: any; // You might want to refine this type if you have a specific PanResponder type
   hideBottomSheet: () => void;
   isBottomSheetVisible: boolean;
 }
 
 export default function AppDetailsSheet({
   bottomSheetAnim,
-  bottomSheetPanResponder,
   hideBottomSheet,
   isBottomSheetVisible,
 }: AppDetailsSheetProps) {

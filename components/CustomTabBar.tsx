@@ -6,10 +6,8 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
-  GestureResponderEvent,
   Keyboard,
   PanResponder,
-  PanResponderGestureState,
   StyleSheet,
   Text,
   TextInput,
@@ -49,30 +47,6 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const bottomSheetAnim = useRef(new Animated.Value(0)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
 
-  const bottomSheetPanResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        // Set responder only if the user is dragging vertically
-        return Math.abs(gestureState.dy) > 5;
-      },
-      onPanResponderMove: (_, gestureState) => {
-        // Move the bottom sheet with the gesture
-        // We'll use a direct manipulation of the value for performance
-        // This requires the animated value to be set up for it.
-        // For now, we'll just log the movement.
-        console.log('dy:', gestureState.dy);
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        // On release, decide whether to snap open or closed
-        if (gestureState.dy > 50) {
-          hideBottomSheet();
-        } else {
-          showBottomSheet();
-        }
-      },
-    })
-  ).current;
-
   const tabData = React.useMemo(() => tabs.map(t => ({
     ...t,
     isFocused: state.routes[state.index].name === t.name,
@@ -81,22 +55,20 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   // Pan responder for swipe gestures
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (evt: GestureResponderEvent, gestureState: PanResponderGestureState) => {
+      onMoveShouldSetPanResponder: (_, gestureState) => {
         return Math.abs(gestureState.dy) > 10;
       },
       onPanResponderGrant: () => {
         // Gesture started
       },
-      onPanResponderMove: (evt: GestureResponderEvent, gestureState: PanResponderGestureState) => {
+      onPanResponderMove: () => {
         // Handle move if needed
       },
-      onPanResponderRelease: (evt: GestureResponderEvent, gestureState: PanResponderGestureState) => {
-        const { dy, vy } = gestureState;
-        
-        if (dy < -50 && vy < -0.5) {
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy < -50 && gestureState.vy < -0.5) {
           // Swipe up - show bottom sheet
           showBottomSheet();
-        } else if (dy > 50 && vy > 0.5) {
+        } else if (gestureState.dy > 50 && gestureState.vy > 0.5) {
           // Swipe down - hide bottom sheet
           hideBottomSheet();
         }
@@ -332,7 +304,7 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
                   style={[
                     styles.selectionBackground,
                     {
-                      left: state.index * tabItemWidth + (tabItemWidth - 64) / 2,
+                      left: state.index * tabItemWidth + (tabItemWidth - 68) / 2,
                       backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
                       borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)',
                     },
@@ -379,7 +351,6 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
 
       <AppDetailsSheet
         bottomSheetAnim={bottomSheetAnim}
-        bottomSheetPanResponder={bottomSheetPanResponder}
         hideBottomSheet={hideBottomSheet}
         isBottomSheetVisible={isBottomSheetVisible}
       />

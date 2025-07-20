@@ -108,8 +108,6 @@ const styles = StyleSheet.create({
     marginBottom: 15, // Reduced margin
     textAlign: 'center',
     fontSize: 14,
-    numberOfLines: 1, // Force single line
-    ellipsizeMode: 'tail', // Add ellipsis if text overflows
   },
   buttonContainer: {
     flexDirection: 'row',
