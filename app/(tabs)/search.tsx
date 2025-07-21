@@ -16,7 +16,7 @@ interface ListItemProps {
 const ListItem: React.FC<ListItemProps> = ({ iconName, title, workspace, onPress }) => (
   <TouchableOpacity style={styles.listItem} onPress={onPress} activeOpacity={0.7}>
     <MaterialCommunityIcons
-      name={iconName as any}
+      name={iconName}
       size={20}
       color="#AAAAAA"
       style={styles.listItemIcon}
@@ -55,7 +55,7 @@ export default function SearchScreen() {
   const filteredData = useMemo(() => {
     const lowercasedQuery = (searchQuery || '').toLowerCase();
     if (!lowercasedQuery) {
-      const grouped = ALL_DATA.reduce((acc, item) => {
+      const grouped = ALL_DATA.reduce((acc: Record<string, typeof ALL_DATA>, item) => {
         (acc[item.section] = acc[item.section] || []).push(item);
         return acc;
       }, {} as Record<string, typeof ALL_DATA>);

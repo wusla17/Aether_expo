@@ -31,7 +31,7 @@ const tabs: { name: string; icon: IconName; label: string }[] = [
 
 
 
-export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
+export default function CustomTabBar({ state, navigation, calendarTabLabel }: BottomTabBarProps & { calendarTabLabel: string }) {
   const { width: screenWidth } = useWindowDimensions();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -39,7 +39,7 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
 
   const [isSearchBarVisible, setIsSearchBarVisible] = useState(false);
   const [searchText, setSearchText] = useState('');
-  const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
+  const [isBottomSheetVisible, ] = useState(false);
   const lastTap = useRef(0);
   const searchBarAnim = useRef(new Animated.Value(0)).current;
   const searchInputRef = useRef<TextInput>(null);
@@ -47,38 +47,8 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const bottomSheetAnim = useRef(new Animated.Value(0)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
 
-  const tabData = React.useMemo(() => tabs.map(t => ({
-    ...t,
-    isFocused: state.routes[state.index].name === t.name,
-  })), [state.index, state.routes]);
-
-  // Pan responder for swipe gestures
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        return Math.abs(gestureState.dy) > 10;
-      },
-      onPanResponderGrant: () => {
-        // Gesture started
-      },
-      onPanResponderMove: () => {
-        // Handle move if needed
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy < -50 && gestureState.vy < -0.5) {
-          // Swipe up - show bottom sheet
-          showBottomSheet();
-        } else if (gestureState.dy > 50 && gestureState.vy > 0.5) {
-          // Swipe down - hide bottom sheet
-          hideBottomSheet();
-        }
-      },
-    })
-  ).current;
-
   const showBottomSheet = React.useCallback(() => {
     if (isBottomSheetVisible) return;
-    setIsBottomSheetVisible(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     Animated.parallel([
@@ -113,15 +83,37 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
         useNativeDriver: false,
       }),
     ]).start(() => {
-      setIsBottomSheetVisible(false);
     });
   }, [isBottomSheetVisible, bottomSheetAnim, overlayAnim]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Math.abs(gestureState.dy) > 10;
+      },
+      onPanResponderGrant: () => {
+        // Gesture started
+      },
+      onPanResponderMove: () => {
+        // Handle move if needed
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy < -50 && gestureState.vy < -0.5) {
+          // Swipe up - show bottom sheet
+          showBottomSheet();
+        } else if (gestureState.dy > 50 && gestureState.vy > 0.5) {
+          // Swipe down - hide bottom sheet
+          hideBottomSheet();
+        }
+      },
+    })
+  ).current;
 
   const handleTabPress = React.useCallback((name: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const now = Date.now();
     const DOUBLE_PRESS_DELAY = 300;
-    
+
     if (name === 'search') {
       if (now - lastTap.current < DOUBLE_PRESS_DELAY) {
         setIsSearchBarVisible(true);
@@ -129,7 +121,18 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
         lastTap.current = now;
         navigation.navigate(name);
       }
-    } else {
+    } else if (name === 'calendar') {
+      if (now - lastTap.current < DOUBLE_PRESS_DELAY) {
+        const currentRoute = state.routes[state.index];
+        const currentView = (currentRoute.params as { currentView?: string })?.currentView;
+        const newView = currentView === 'event' ? 'calendar' : 'event';
+        router.setParams({ currentView: newView });
+      } else {
+        lastTap.current = now;
+        navigation.navigate(name);
+      }
+    }
+    else {
       if (isSearchBarVisible) {
         setIsSearchBarVisible(false);
         setSearchText('');
@@ -137,6 +140,12 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
       navigation.navigate(name);
     }
   }, [isSearchBarVisible, lastTap, navigation]);
+
+  const tabData = React.useMemo(() => tabs.map(t => ({
+    ...t,
+    isFocused: state.routes[state.index].name === t.name,
+    label: t.name === 'calendar' ? calendarTabLabel : t.label,
+  })), [state.index, state.routes, calendarTabLabel]);
 
   const handleSearchSubmit = React.useCallback(() => {
     if (searchText.trim()) {

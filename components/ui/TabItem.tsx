@@ -1,5 +1,6 @@
 
-import { Pressable, StyleSheet, useColorScheme } from 'react-native';
+import React from 'react';
+import { Pressable, StyleSheet } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   withTiming,

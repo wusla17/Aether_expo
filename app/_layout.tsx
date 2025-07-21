@@ -12,8 +12,8 @@ enableScreens();
 
 export default function RootLayout() {
   // State for theme preference, initialized from AsyncStorage
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(true); // Default to true
-  const [isLoadingTheme, setIsLoadingTheme] = useState(true); // Loading state for theme
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
+  const [isLoadingTheme, setIsLoadingTheme] = useState(true);
 
   // State for database initialization
   const [isDbReady, setIsDbReady] = useState(false);

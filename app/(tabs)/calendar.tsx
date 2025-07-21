@@ -1,281 +1,251 @@
-import { AntDesign } from '@expo/vector-icons';
+// app/calendar.tsx
 import moment from 'moment';
-import { useEffect, useState } from 'react';
-import {
-  FlatList,
-  SafeAreaView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { Calendar } from 'react-native-calendars';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
-import { Colors } from '../../constants/Colors';
+import { Dimensions, GestureResponderEvent, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import EventDetailsModal, { EventData } from '../../components/EventDetailsModal';
 
-interface CalendarEvent {
-  id: string;
-  category: string;
-  color: string;
-  title: string;
-  place: string;
-  start: string;
-  end: string;
-  date: string; // Added date property
+const HOUR_HEIGHT = 80;
+
+interface Event extends EventData {
+    id: string;
+    type: 'default' | 'birthday' | 'hospital' | 'meeting' | 'interview' | 'workshop';
+    color?: string;
 }
 
-const generateDummyEvents = (): CalendarEvent[] => {
-  const today = moment();
-  const events: CalendarEvent[] = [];
+const initialEvents: Event[] = [
+    { id: '2', title: 'iOS Developer Interview', startTime: moment().hour(10).minute(0).toDate(), endTime: moment().hour(11).minute(30).toDate(), type: 'interview', color: '#4ECDC4', participants: '', conferencing: 'Google Meet', location: 'Remote', calendar: 'Personal', reminders: '15 min before', description: '' },
+    { id: '5', title: 'Lunch with Amanda', startTime: moment().hour(12).minute(30).toDate(), endTime: moment().hour(13).minute(30).toDate(), type: 'meeting', color: '#FFB3BA', participants: '', conferencing: 'Google Meet', location: 'Remote', calendar: 'Personal', reminders: '15 min before', description: '' },
+    { id: '7', title: 'Product Strategy Meeting', startTime: moment().hour(14).minute(0).toDate(), endTime: moment().hour(15).minute(0).toDate(), type: 'meeting', color: '#FFDFBA', participants: '', conferencing: 'Google Meet', location: 'Remote', calendar: 'Personal', reminders: '15 min before', description: '' },
+    { id: '8', title: 'Meeting with Sam', startTime: moment().add(1, 'day').hour(18).minute(0).toDate(), endTime: moment().add(1, 'day').hour(19).minute(0).toDate(), type: 'meeting', color: '#BAFFC9', participants: '', conferencing: 'Google Meet', location: 'Remote', calendar: 'Personal', reminders: '15 min before', description: '' },
+];
 
-  for (let i = -5; i <= 5; i++) {
-    const date = today.clone().add(i, 'days').format('YYYY-MM-DD');
-    const numEvents = Math.floor(Math.random() * 3); // 0-2 events per day
+const CalendarView: React.FC<{
+    onEventPress: (event: Event) => void;
+    events: Event[];
+    onTimeSlotPress: (time: moment.Moment) => void;
+    onOpenMonthPicker: () => void;
+    onOpenYearPicker: () => void;
+}> = ({ onEventPress, events, onTimeSlotPress, onOpenMonthPicker, onOpenYearPicker }) => {
+    const insets = useSafeAreaInsets();
+    const [selectedDate, setSelectedDate] = useState(moment());
+    const dateScrollerRef = useRef<ScrollView>(null);
 
-    for (let j = 0; j < numEvents; j++) {
-      const startHour = Math.floor(Math.random() * 24);
-      const endHour = Math.min(startHour + Math.floor(Math.random() * (24 - startHour)), 24);
+    const daysInMonth = useMemo(() => {
+        const monthStart = selectedDate.clone().startOf('month');
+        const days = selectedDate.daysInMonth();
+        return Array.from({ length: days }, (_, i) => monthStart.clone().add(i, 'days'));
+    }, [selectedDate]);
 
-      events.push({
-        id: `${date}-${j}`,
-        category: ['Meeting', 'Work', 'Personal'][Math.floor(Math.random() * 3)],
-        color: ['#FFC107', '#03DAC6', '#2196F3'][Math.floor(Math.random() * 3)],
-        title: `Event ${j + 1}`,
-        place: ['Office', 'Home', 'Coffee Shop'][Math.floor(Math.random() * 3)],
-        start: moment({ hour: startHour }).format('HH:mm'),
-        end: moment({ hour: endHour }).format('HH:mm'),
-        date: date,
-      });
-    }
-  }
+    const eventsForDay = useMemo(() => {
+        return events.filter(event => moment(event.startTime).isSame(selectedDate, 'day'));
+    }, [selectedDate, events]);
 
-  return events;
+    useEffect(() => {
+        const dayIndex = selectedDate.date() - 1;
+        const itemWidth = 60;
+        const scrollPosition = dayIndex * itemWidth - (Dimensions.get('window').width / 2) + (itemWidth / 2);
+        dateScrollerRef.current?.scrollTo({ x: scrollPosition, animated: true });
+    }, [selectedDate]);
+
+    const handleTimeSlotPress = (event: GestureResponderEvent) => {
+        const { locationY } = event.nativeEvent;
+        const hour = Math.floor(locationY / HOUR_HEIGHT);
+        const minute = Math.round(((locationY % HOUR_HEIGHT) / HOUR_HEIGHT) * 60);
+        const newEventTime = selectedDate.clone().hour(hour).minute(minute).second(0).millisecond(0);
+        onTimeSlotPress(newEventTime);
+    };
+
+    const renderEvent = (event: Event) => {
+        const startMinutes = event.startTime.getHours() * 60 + event.startTime.getMinutes();
+        const endMinutes = event.endTime.getHours() * 60 + event.endTime.getMinutes();
+        const duration = endMinutes - startMinutes;
+        const top = (startMinutes / 60) * HOUR_HEIGHT;
+        const height = (duration / 60) * HOUR_HEIGHT;
+
+        return (
+            <TouchableOpacity
+                key={event.id}
+                style={[styles.eventCard, { top, height: Math.max(height - 2, 40), backgroundColor: (event.color || '#007AFF') + '30', borderLeftColor: event.color }]}
+                onPress={() => onEventPress(event)}
+            >
+                <Text style={styles.eventTitle}>{event.title}</Text>
+                <Text style={styles.eventTime}>{moment(event.startTime).format('HH:mm')} - {moment(event.endTime).format('HH:mm')}</Text>
+            </TouchableOpacity>
+        );
+    };
+
+    return (
+        <View style={[styles.container, { paddingTop: insets.top }]}>
+            <View style={styles.header}>
+                <TouchableOpacity onPress={onOpenMonthPicker}><Text style={styles.headerMonth}>{selectedDate.format('MMMM')}</Text></TouchableOpacity>
+                <TouchableOpacity onPress={onOpenYearPicker}><Text style={styles.headerYear}>{selectedDate.format('YYYY')}</Text></TouchableOpacity>
+            </View>
+
+            <View style={styles.dateScrollerContainer}>
+                <ScrollView ref={dateScrollerRef} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateScrollerContent}>
+                    {daysInMonth.map((day) => {
+                        const isToday = day.isSame(moment(), 'day');
+                        const isSelected = day.isSame(selectedDate, 'day');
+                        return (
+                            <TouchableOpacity key={day.format('YYYY-MM-DD')} style={styles.dayHeader} onPress={() => setSelectedDate(day)}>
+                                <Text style={[styles.dayHeaderText, isSelected && styles.selectedDayText]}>{day.format('ddd')}</Text>
+                                <View style={[styles.dayNumberContainer, isSelected && styles.selectedDayCircle]}>
+                                    <Text style={[styles.dayNumberText, isToday && !isSelected && styles.todayText, isSelected && styles.selectedDayText]}>{day.format('D')}</Text>
+                                </View>
+                            </TouchableOpacity>
+                        );
+                    })}
+                </ScrollView>
+            </View>
+
+            <ScrollView style={styles.scrollView}>
+                <TouchableOpacity style={styles.gridContainer} onPress={handleTimeSlotPress}>
+                    <View style={styles.timeAxisContainer}>
+                        {Array.from({ length: 24 }, (_, i) => i).map((hour) => (
+                            <View key={hour} style={[styles.timeAxisHour, { height: HOUR_HEIGHT }]}>
+                                <Text style={styles.timeText}>{moment().hour(hour).format('HH:mm')}</Text>
+                            </View>
+                        ))}</View>
+                    <View style={styles.contentArea}>
+                        {Array.from({ length: 24 }, (_, i) => i).map((hour) => (
+                            <View key={`line-${hour}`} style={[styles.hourLine, { top: hour * HOUR_HEIGHT }]} />
+                        ))}
+                        {eventsForDay.map(renderEvent)}
+                    </View>
+                </TouchableOpacity>
+            </ScrollView>
+        </View>
+    );
 };
 
 const CalendarScreen = () => {
-  const [selectedDate, setSelectedDate] = useState(moment().format('YYYY-MM-DD'));
-  const [activeView, setActiveView] = useState<'calendar' | 'events'>('calendar');
-  const [currentMonthDisplayed, setCurrentMonthDisplayed] = useState(moment().format('YYYY-MM-DD'));
-  const [events, setEvents] = useState<CalendarEvent[]>(generateDummyEvents());
+    const [events, setEvents] = useState<Event[]>(initialEvents);
+    const [isEventModalVisible, setIsEventModalVisible] = useState(false);
+    const [eventToEdit, setEventToEdit] = useState<EventData | null>(null);
 
-  useEffect(() => {
-    // You might want to filter events based on the currently displayed month
-    // For simplicity, we're displaying all events
-  }, [currentMonthDisplayed]);
+    const handleEventPress = (event: Event) => {
+        setEventToEdit(event);
+        setIsEventModalVisible(true);
+    };
 
-  const getEventsForDate = (date: string): CalendarEvent[] => {
-    return events.filter(event => event.date === date);
-  };
+    const handleTimeSlotPress = (time: moment.Moment) => {
+        setEventToEdit({
+            title: '',
+            startTime: time.toDate(),
+            endTime: time.clone().add(30, 'minutes').toDate(),
+            participants: '',
+            conferencing: 'Google Meet',
+            location: 'Remote',
+            calendar: 'Personal',
+            reminders: '15 min before',
+            description: '',
+        });
+        setIsEventModalVisible(true);
+    };
 
-  const renderEventItem = ({ item }: { item: CalendarEvent }) => (
-    <View style={styles.eventCard}>
-      <View style={styles.eventLeft}>
-        <Text style={[styles.eventCategory, { backgroundColor: item.color }]}>{item.category}</Text>
-      </View>
-      <View style={styles.eventInfo}>
-        <Text style={styles.eventTitle}>{item.title}</Text>
-        <View style={styles.eventMeta}>
-          <Text style={styles.eventTime}>
-            {item.start} - {item.end}
-          </Text>
-          <Text style={styles.eventPlace}> · {item.place}</Text>
-        </View>
-      </View>
-    </View>
-  );
+    const handleSaveEvent = (savedEvent: EventData) => {
+        if (savedEvent.id) {
+            setEvents(prevEvents => prevEvents.map(e => e.id === savedEvent.id ? { ...e, ...savedEvent, type: e.type, color: e.color } : e));
+        } else {
+            setEvents(prevEvents => [...prevEvents, { ...savedEvent, id: Date.now().toString(), type: 'default', color: '#007AFF' }]);
+        }
+        setIsEventModalVisible(false);
+        setEventToEdit(null);
+    };
 
-  const renderEventListWithDates = () => {
-    const groupedEvents = events.reduce((acc: { [date: string]: CalendarEvent[] }, event) => {
-      if (!acc[event.date]) {
-        acc[event.date] = [];
-      }
-      acc[event.date].push(event);
-      return acc;
-    }, {});
+    const handleCloseModal = () => {
+        setIsEventModalVisible(false);
+        setEventToEdit(null);
+    };
 
-    const sortedDates = Object.keys(groupedEvents).sort();
+    const handleOpenMonthPicker = () => {
+        // Logic to open month picker, possibly a separate modal or component
+        // For now, we'll just open the EventDetailsModal with a default event
+        setEventToEdit({
+            title: 'Select Month',
+            startTime: moment().toDate(),
+            endTime: moment().add(1, 'hour').toDate(),
+            participants: '',
+            conferencing: '',
+            location: '',
+            calendar: '',
+            reminders: '',
+            description: '',
+        });
+        setIsEventModalVisible(true);
+    };
+
+    const handleOpenYearPicker = () => {
+        // Logic to open year picker, possibly a separate modal or component
+        // For now, we'll just open the EventDetailsModal with a default event
+        setEventToEdit({
+            title: 'Select Year',
+            startTime: moment().toDate(),
+            endTime: moment().add(1, 'hour').toDate(),
+            participants: '',
+            conferencing: '',
+            location: '',
+            calendar: '',
+            reminders: '',
+            description: '',
+        });
+        setIsEventModalVisible(true);
+    };
 
     return (
-      <FlatList
-        data={sortedDates}
-        keyExtractor={(item) => item}
-        renderItem={({ item: date }) => (
-          <View style={styles.dateGroup}>
-            <View style={styles.dateHeader}>
-              <Text style={styles.dateText}>{moment(date).format('DD Mon')}</Text>
-              <View style={styles.verticalLine} />
-            </View>
-            <FlatList
-              data={groupedEvents[date]}
-              keyExtractor={(event) => event.id}
-              renderItem={renderEventItem}
+        <View style={styles.container}>
+            <CalendarView 
+                onEventPress={handleEventPress} 
+                events={events} 
+                onTimeSlotPress={handleTimeSlotPress}
+                onOpenMonthPicker={handleOpenMonthPicker}
+                onOpenYearPicker={handleOpenYearPicker}
             />
-          </View>
-        )}
-      />
+            <EventDetailsModal
+                isVisible={isEventModalVisible}
+                event={eventToEdit}
+                onClose={handleCloseModal}
+                onSave={handleSaveEvent}
+            />
+        </View>
     );
-  };
-
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.dark.background} />
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentMonthDisplayed(moment(currentMonthDisplayed).subtract(1, 'month').format('YYYY-MM-DD'))}>
-            <AntDesign name="left" size={24} color={Colors.dark.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{moment(currentMonthDisplayed).format('MMMM YYYY')}</Text>
-          <TouchableOpacity onPress={() => setCurrentMonthDisplayed(moment(currentMonthDisplayed).add(1, 'month').format('YYYY-MM-DD'))}>
-            <AntDesign name="right" size={24} color={Colors.dark.text} />
-          </TouchableOpacity>
-        </View>
-
-        {/* View Toggle */}
-        <View style={styles.viewToggle}>
-          <TouchableOpacity onPress={() => setActiveView('events')}>
-            <Text style={[styles.viewToggleText, activeView === 'events' && styles.viewToggleTextActive]}>EVENTS</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setActiveView('calendar')}>
-            <Text style={[styles.viewToggleText, activeView === 'calendar' && styles.viewToggleTextActive]}>CALENDAR</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Content */}
-        {activeView === 'calendar' ? (
-          <View style={styles.calendarContainer}>
-            <Calendar
-              current={currentMonthDisplayed}
-              onMonthChange={(month) => setCurrentMonthDisplayed(month.dateString)}
-              onDayPress={(day) => setSelectedDate(day.dateString)}
-              markedDates={{
-                [selectedDate]: { selected: true, selectedColor: '#FFC107' },
-              }}
-              theme={{
-                backgroundColor: Colors.dark.background,
-                calendarBackground: Colors.dark.background,
-                textSectionTitleColor: Colors.dark.icon,
-                selectedDayBackgroundColor: '#FFC107',
-                selectedDayTextColor: Colors.dark.background,
-                todayTextColor: Colors.dark.tint,
-                dayTextColor: Colors.dark.text,
-                textDisabledColor: Colors.dark.icon,
-                arrowColor: Colors.dark.text,
-                monthTextColor: Colors.dark.text,
-                dotColor: '#FFC107',
-              }}
-            />
-            <Text style={styles.tasksHeader}>Tasks for {moment(selectedDate).format('DD MMMM YYYY')}</Text>
-            <FlatList
-              data={getEventsForDate(selectedDate)}
-              renderItem={renderEventItem}
-              keyExtractor={(item) => item.id}
-            />
-          </View>
-        ) : (
-          <View style={styles.eventsContainer}>
-            {renderEventListWithDates()}
-          </View>
-        )}
-      </View>
-    </SafeAreaView>
-  );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: Colors.dark.background,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: Colors.dark.background,
-    padding: 10,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: Colors.dark.text,
-  },
-  viewToggle: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 20,
-  },
-  viewToggleText: {
-    fontSize: 16,
-    color: Colors.dark.icon,
-    fontWeight: 'bold',
-  },
-  viewToggleTextActive: {
-    color: Colors.dark.text,
-  },
-  calendarContainer: {
-    flex: 1,
-  },
-  eventsContainer: {
-    flex: 1,
-  },
-  tasksHeader: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.dark.text,
-    marginTop: 10,
-    marginBottom: 5,
-  },
-  eventCard: {
-    flexDirection: 'row',
-    backgroundColor: Colors.dark.background,
-    borderRadius: 11,
-    marginHorizontal: 18,
-    marginBottom: 14,
-    paddingVertical: 13,
-    paddingHorizontal: 13,
-    alignItems: 'center',
-    elevation: 2,
-  },
-  eventLeft: { marginRight: 10 },
-  eventCategory: {
-    fontWeight: 'bold',
-    paddingVertical: 3,
-    paddingHorizontal: 13,
-    fontSize: 13,
-    borderRadius: 12,
-    color: Colors.dark.text,
-    overflow: 'hidden',
-  },
-  eventInfo: { flex: 1 },
-  eventTitle: { color: Colors.dark.text, fontWeight: 'bold', fontSize: 16, marginBottom: 2 },
-  eventMeta: { flexDirection: 'row', alignItems: 'center' },
-  eventTime: { color: Colors.dark.tint, fontSize: 13, fontWeight: 'bold' },
-  eventPlace: { color: Colors.dark.icon, fontSize: 13, marginLeft: 3 },
-  dateGroup: {
-    flexDirection: 'row',
-    marginTop: 10,
-    marginBottom: 5,
-  },
-  dateHeader: {
-    width: 80,
-    alignItems: 'flex-start',
-  },
-  dateText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.dark.text,
-  },
-  verticalLine: {
-    width: 1,
-    backgroundColor: Colors.dark.icon,
-    height: '100%',
-    marginLeft: 10,
-  },
+    container: { flex: 1, backgroundColor: '#1C1C1E' },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
+    headerMonth: { fontSize: 24, fontWeight: 'bold', color: '#FFFFFF' },
+    headerYear: { fontSize: 24, fontWeight: '300', color: '#8E8E93', marginLeft: 8 },
+    dateScrollerContainer: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#2C2C2E' },
+    dateScrollerContent: { paddingHorizontal: 16 },
+    dayHeader: { alignItems: 'center', justifyContent: 'center', width: 60 },
+    dayHeaderText: { fontSize: 13, color: '#8E8E93', marginBottom: 8, fontWeight: '500', textTransform: 'uppercase' },
+    dayNumberContainer: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+    dayNumberText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
+    selectedDayCircle: { backgroundColor: '#FF3B30', borderRadius: 10 },
+    selectedDayText: { color: '#FFFFFF', fontWeight: 'bold' },
+    todayText: { color: '#FF3B30', fontWeight: 'bold' },
+    scrollView: { flex: 1 },
+    gridContainer: { flexDirection: 'row', minHeight: 24 * HOUR_HEIGHT },
+    timeAxisContainer: { width: 70, paddingLeft: 8 },
+    timeAxisHour: { justifyContent: 'flex-start', paddingTop: 4 },
+    timeText: { fontSize: 12, color: '#8E8E93' },
+    contentArea: { flex: 1, position: 'relative', borderLeftWidth: 1, borderLeftColor: '#2C2C2E' },
+    hourLine: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: '#2C2C2E' },
+    eventCard: { position: 'absolute', left: 8, right: 8, borderRadius: 12, padding: 12, justifyContent: 'flex-start', borderLeftWidth: 5 },
+    eventTitle: { fontSize: 15, fontWeight: 'bold', color: '#FFFFFF', marginBottom: 4 },
+    eventTime: { fontSize: 13, color: '#EAEAEA' },
+    modalBackdrop: { flex: 1, justifyContent: 'flex-start', alignItems: 'center' },
+    modalContainer: { width: '90%', maxHeight: '50%', marginTop: 120, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.2)' },
+    modalItem: { paddingVertical: 18, paddingHorizontal: 24, alignItems: 'center' },
+    modalItemText: { color: '#FFFFFF', fontSize: 18, fontWeight: '500' },
+    eventDetailsContainer: { flex: 1, backgroundColor: '#1C1C1E' },
+    eventDetailsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#2C2C2E' },
+    eventDetailsTitle: { fontSize: 20, fontWeight: '600', color: '#FFFFFF', flex: 1, textAlign: 'center', marginHorizontal: 10 },
+    backButton: { padding: 8 },
+    editButton: { padding: 8 },
 });
 
 export default CalendarScreen;
