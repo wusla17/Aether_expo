@@ -1,29 +1,32 @@
-// app/calendar.tsx
 import moment from 'moment';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { Dimensions, GestureResponderEvent, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, GestureResponderEvent, ScrollView, StyleSheet, Text, TouchableOpacity, View, Keyboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import EventDetailsModal, { EventData } from '../../components/EventDetailsModal';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useEventModal, EventData } from '@/context/EventModalContext';
 
 const HOUR_HEIGHT = 80;
 
-interface Event extends EventData {
+interface CalendarEvent {
     id: string;
-    type: 'default' | 'birthday' | 'hospital' | 'meeting' | 'interview' | 'workshop';
+    title: string;
+    start: Date;
+    end: Date;
     color?: string;
+    payload: EventData; // To hold the original EventData
 }
 
-const initialEvents: Event[] = [
-    { id: '2', title: 'iOS Developer Interview', startTime: moment().hour(10).minute(0).toDate(), endTime: moment().hour(11).minute(30).toDate(), type: 'interview', color: '#4ECDC4', participants: '', conferencing: 'Google Meet', location: 'Remote', calendar: 'Personal', reminders: '15 min before', description: '' },
-    { id: '5', title: 'Lunch with Amanda', startTime: moment().hour(12).minute(30).toDate(), endTime: moment().hour(13).minute(30).toDate(), type: 'meeting', color: '#FFB3BA', participants: '', conferencing: 'Google Meet', location: 'Remote', calendar: 'Personal', reminders: '15 min before', description: '' },
-    { id: '7', title: 'Product Strategy Meeting', startTime: moment().hour(14).minute(0).toDate(), endTime: moment().hour(15).minute(0).toDate(), type: 'meeting', color: '#FFDFBA', participants: '', conferencing: 'Google Meet', location: 'Remote', calendar: 'Personal', reminders: '15 min before', description: '' },
-    { id: '8', title: 'Meeting with Sam', startTime: moment().add(1, 'day').hour(18).minute(0).toDate(), endTime: moment().add(1, 'day').hour(19).minute(0).toDate(), type: 'meeting', color: '#BAFFC9', participants: '', conferencing: 'Google Meet', location: 'Remote', calendar: 'Personal', reminders: '15 min before', description: '' },
+const initialEvents: EventData[] = [
+    { id: '2', title: 'iOS Developer Interview', startTime: moment().hour(10).minute(0).toDate(), endTime: moment().hour(11).minute(30).toDate(), participants: '', conferencing: 'Google Meet', location: 'Remote', calendar: 'Personal', reminders: '15 min before', description: '' },
+    { id: '5', title: 'Lunch with Amanda', startTime: moment().hour(12).minute(30).toDate(), endTime: moment().hour(13).minute(30).toDate(), participants: '', conferencing: 'Google Meet', location: 'Remote', calendar: 'Personal', reminders: '15 min before', description: '' },
+    { id: '7', title: 'Product Strategy Meeting', startTime: moment().hour(14).minute(0).toDate(), endTime: moment().hour(15).minute(0).toDate(), participants: '', conferencing: 'Google Meet', location: 'Remote', calendar: 'Personal', reminders: '15 min before', description: '' },
+    { id: '8', title: 'Meeting with Sam', startTime: moment().add(1, 'day').hour(18).minute(0).toDate(), endTime: moment().add(1, 'day').hour(19).minute(0).toDate(), participants: '', conferencing: 'Google Meet', location: 'Remote', calendar: 'Personal', reminders: '15 min before', description: '' },
 ];
 
 const CalendarView: React.FC<{
-    onEventPress: (event: Event) => void;
-    events: Event[];
+    onEventPress: (event: CalendarEvent) => void;
+    events: CalendarEvent[];
     onTimeSlotPress: (time: moment.Moment) => void;
     onOpenMonthPicker: () => void;
     onOpenYearPicker: () => void;
@@ -39,7 +42,7 @@ const CalendarView: React.FC<{
     }, [selectedDate]);
 
     const eventsForDay = useMemo(() => {
-        return events.filter(event => moment(event.startTime).isSame(selectedDate, 'day'));
+        return events.filter(event => moment(event.start).isSame(selectedDate, 'day'));
     }, [selectedDate, events]);
 
     useEffect(() => {
@@ -57,9 +60,9 @@ const CalendarView: React.FC<{
         onTimeSlotPress(newEventTime);
     };
 
-    const renderEvent = (event: Event) => {
-        const startMinutes = event.startTime.getHours() * 60 + event.startTime.getMinutes();
-        const endMinutes = event.endTime.getHours() * 60 + event.endTime.getMinutes();
+    const renderEvent = (event: CalendarEvent) => {
+        const startMinutes = event.start.getHours() * 60 + event.start.getMinutes();
+        const endMinutes = event.end.getHours() * 60 + event.end.getMinutes();
         const duration = endMinutes - startMinutes;
         const top = (startMinutes / 60) * HOUR_HEIGHT;
         const height = (duration / 60) * HOUR_HEIGHT;
@@ -67,11 +70,11 @@ const CalendarView: React.FC<{
         return (
             <TouchableOpacity
                 key={event.id}
-                style={[styles.eventCard, { top, height: Math.max(height - 2, 40), backgroundColor: (event.color || '#007AFF') + '30', borderLeftColor: event.color }]}
+                style={[styles.eventCard, { top, height: Math.max(height - 2, 40), backgroundColor: (event.color || '#007AFF') + '30', borderLeftColor: event.color }]} // Use event.color
                 onPress={() => onEventPress(event)}
             >
                 <Text style={styles.eventTitle}>{event.title}</Text>
-                <Text style={styles.eventTime}>{moment(event.startTime).format('HH:mm')} - {moment(event.endTime).format('HH:mm')}</Text>
+                <Text style={styles.eventTime}>{moment(event.start).format('HH:mm')} - {moment(event.end).format('HH:mm')}</Text>
             </TouchableOpacity>
         );
     };
@@ -121,17 +124,50 @@ const CalendarView: React.FC<{
 };
 
 const CalendarScreen = () => {
-    const [events, setEvents] = useState<Event[]>(initialEvents);
-    const [isEventModalVisible, setIsEventModalVisible] = useState(false);
-    const [eventToEdit, setEventToEdit] = useState<EventData | null>(null);
+    const [events, setEvents] = useState<EventData[]>(initialEvents);
+    const { openModal } = useEventModal();
+    const navigation = useNavigation();
 
-    const handleEventPress = (event: Event) => {
-        setEventToEdit(event);
-        setIsEventModalVisible(true);
+    useFocusEffect(
+        useCallback(() => {
+            const keyboardDidShowListener = Keyboard.addListener(
+                'keyboardDidShow',
+                () => {
+                    navigation.setOptions({ tabBarStyle: { display: 'none' } });
+                }
+            );
+            const keyboardDidHideListener = Keyboard.addListener(
+                'keyboardDidHide',
+                () => {
+                    navigation.setOptions({ tabBarStyle: { display: 'flex' } });
+                }
+            );
+    
+            return () => {
+                keyboardDidHideListener.remove();
+                keyboardDidShowListener.remove();
+            };
+        }, [navigation])
+    );
+
+    // Transform EventData to CalendarEvent for the CalendarView component
+    const transformedEvents: CalendarEvent[] = useMemo(() => {
+        return events.map(event => ({
+            id: event.id || Date.now().toString(), // Ensure ID exists
+            title: event.title,
+            start: event.startTime,
+            end: event.endTime,
+            color: '#007AFF', // Default color, you can add a color property to EventData if needed
+            payload: event,
+        }));
+    }, [events]);
+
+    const handleEventPress = (calendarEvent: CalendarEvent) => {
+        openModal(calendarEvent.payload);
     };
 
     const handleTimeSlotPress = (time: moment.Moment) => {
-        setEventToEdit({
+        openModal({
             title: '',
             startTime: time.toDate(),
             endTime: time.clone().add(30, 'minutes').toDate(),
@@ -142,28 +178,11 @@ const CalendarScreen = () => {
             reminders: '15 min before',
             description: '',
         });
-        setIsEventModalVisible(true);
-    };
-
-    const handleSaveEvent = (savedEvent: EventData) => {
-        if (savedEvent.id) {
-            setEvents(prevEvents => prevEvents.map(e => e.id === savedEvent.id ? { ...e, ...savedEvent, type: e.type, color: e.color } : e));
-        } else {
-            setEvents(prevEvents => [...prevEvents, { ...savedEvent, id: Date.now().toString(), type: 'default', color: '#007AFF' }]);
-        }
-        setIsEventModalVisible(false);
-        setEventToEdit(null);
-    };
-
-    const handleCloseModal = () => {
-        setIsEventModalVisible(false);
-        setEventToEdit(null);
     };
 
     const handleOpenMonthPicker = () => {
-        // Logic to open month picker, possibly a separate modal or component
-        // For now, we'll just open the EventDetailsModal with a default event
-        setEventToEdit({
+        // Example: open a modal for month selection, passing dummy event data
+        openModal({
             title: 'Select Month',
             startTime: moment().toDate(),
             endTime: moment().add(1, 'hour').toDate(),
@@ -174,13 +193,11 @@ const CalendarScreen = () => {
             reminders: '',
             description: '',
         });
-        setIsEventModalVisible(true);
     };
 
     const handleOpenYearPicker = () => {
-        // Logic to open year picker, possibly a separate modal or component
-        // For now, we'll just open the EventDetailsModal with a default event
-        setEventToEdit({
+        // Example: open a modal for year selection, passing dummy event data
+        openModal({
             title: 'Select Year',
             startTime: moment().toDate(),
             endTime: moment().add(1, 'hour').toDate(),
@@ -191,23 +208,16 @@ const CalendarScreen = () => {
             reminders: '',
             description: '',
         });
-        setIsEventModalVisible(true);
     };
 
     return (
         <View style={styles.container}>
             <CalendarView 
                 onEventPress={handleEventPress} 
-                events={events} 
+                events={transformedEvents} 
                 onTimeSlotPress={handleTimeSlotPress}
                 onOpenMonthPicker={handleOpenMonthPicker}
                 onOpenYearPicker={handleOpenYearPicker}
-            />
-            <EventDetailsModal
-                isVisible={isEventModalVisible}
-                event={eventToEdit}
-                onClose={handleCloseModal}
-                onSave={handleSaveEvent}
             />
         </View>
     );

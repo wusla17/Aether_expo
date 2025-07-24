@@ -1,363 +1,305 @@
-import React, { useRef, useCallback, useMemo, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert } from 'react-native';
-import { BottomSheetModal, BottomSheetView, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import moment from 'moment';
+import React, { useState } from 'react';
+import {
+  Modal,
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  Switch,
+} from 'react-native';
+import { BlurView } from 'expo-blur';
+import { Ionicons } from '@expo/vector-icons';
+import CustomTimePicker from './CustomTimePicker';
+import SelectionModal from './SelectionModal';
+import { useEventModal, EventData } from '@/context/EventModalContext';
 
-/**
- * Defines the structure for event data.
- */
-export interface EventData {
-  id?: string; // Optional ID for existing events
-  title: string;
-  startTime: Date;
-  endTime: Date;
-  participants: string;
-  conferencing: string;
-  location: string;
-  calendar: string;
-  reminders: string;
-  description: string; // Added description field
-}
+const EventDetailsModal = () => {
+  const { isVisible, closeModal, eventData } = useEventModal();
 
-/**
- * Props for the EventDetailsModal component.
- */
-interface EventDetailsModalProps {
-  /**
-   * Controls the visibility of the bottom sheet modal.
-   */
-  isVisible: boolean;
-  /**
-   * Callback function invoked when the modal is dismissed (e.g., by closing or saving).
-   */
-  onClose: () => void;
-  /**
-   * The event data to be displayed and edited in the modal. If null, it indicates a new event creation.
-   */
-  event: EventData | null;
-  /**
-   * Callback function invoked when an event is saved (either new or updated).
-   */
-  onSave: (event: EventData) => void;
-}
+  const [title, setTitle] = useState(eventData?.title || '');
+  const [location, setLocation] = useState(eventData?.location || '');
+  const [isAllDay, setIsAllDay] = useState(false);
+  const [startTime, setStartTime] = useState(eventData?.startTime ? eventData.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '10:00 AM');
+  const [endTime, setEndTime] = useState(eventData?.endTime ? eventData.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '11:00 AM');
+  const [selectedCalendar, setSelectedCalendar] = useState(eventData?.calendar || 'Home');
+  const [reminder, setReminder] = useState(eventData?.reminders || 'None');
 
-/**
- * A React Native component that serves as a combined interface for viewing and editing event details
- * in a stylish, dark-mode bottom sheet modal. It supports creating new events or modifying existing ones.
- */
-const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isVisible, onClose, event, onSave }) => {
-  const bottomSheetModalRef = useRef<BottomSheetModal>(null);
-  const snapPoints = useMemo(() => ['50%', '75%', '95%'], []);
+  const [isTimePickerVisible, setTimePickerVisible] = useState(false);
+  const [isCalendarModalVisible, setCalendarModalVisible] = useState(false);
+  const [isReminderModalVisible, setReminderModalVisible] = useState(false);
+  const [timePickerTarget, setTimePickerTarget] = useState<'start' | 'end'>('start');
 
-  // State for event details, initialized from props or default values for new events
-  const [currentEvent, setCurrentEvent] = useState<EventData>(() => {
-    if (event) {
-      return { ...event, startTime: new Date(event.startTime), endTime: new Date(event.endTime) };
+  // Update state when eventData changes (e.g., when a new event is opened)
+  React.useEffect(() => {
+    if (eventData) {
+      setTitle(eventData.title);
+      setLocation(eventData.location);
+      setStartTime(eventData.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      setEndTime(eventData.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      setSelectedCalendar(eventData.calendar);
+      setReminder(eventData.reminders);
     } else {
-      const now = new Date();
-      const defaultStartTime = new Date(now.setMinutes(now.getMinutes() - (now.getMinutes() % 15) + 15));
-      const defaultEndTime = new Date(defaultStartTime.getTime() + 30 * 60 * 1000);
-      return {
-        title: '',
-        startTime: defaultStartTime,
-        endTime: defaultEndTime,
-        participants: '',
-        conferencing: 'Google Meet',
-        location: 'Remote',
-        calendar: 'Personal',
-        reminders: '15 min before',
-        description: '',
-      };
+      // Reset state when modal is closed or no eventData
+      setTitle('');
+      setLocation('');
+      setStartTime('10:00 AM');
+      setEndTime('11:00 AM');
+      setSelectedCalendar('Home');
+      setReminder('None');
     }
-  });
+  }, [eventData]);
 
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState<null | 'start' | 'end'>(null);
+  const calendarOptions = ['Home', 'Work', 'Personal'];
+  const reminderOptions = ['None', 'At time of event', '5 minutes before', '15 minutes before', '30 minutes before', '1 hour before', '1 day before'];
 
-  // Effect to manage modal visibility
-  useEffect(() => {
-    if (isVisible) {
-      bottomSheetModalRef.current?.present();
-      // Reset currentEvent state when modal becomes visible, to reflect latest prop.event
-      setCurrentEvent(() => {
-        if (event) {
-          return { ...event, startTime: new Date(event.startTime), endTime: new Date(event.endTime) };
-        } else {
-          const now = new Date();
-          const defaultStartTime = new Date(now.setMinutes(now.getMinutes() - (now.getMinutes() % 15) + 15));
-          const defaultEndTime = new Date(defaultStartTime.getTime() + 30 * 60 * 1000);
-          return {
-            title: '',
-            startTime: defaultStartTime,
-            endTime: defaultEndTime,
-            participants: '',
-            conferencing: 'Google Meet',
-            location: 'Remote',
-            calendar: 'Personal',
-            reminders: '15 min before',
-            description: '',
-          };
-        }
-      });
+  const handleTimePress = (target: 'start' | 'end') => {
+    setTimePickerTarget(target);
+    setTimePickerVisible(true);
+  };
+
+  const handleTimeChange = (newTime: string) => {
+    if (timePickerTarget === 'start') {
+      setStartTime(newTime);
     } else {
-      bottomSheetModalRef.current?.dismiss();
+      setEndTime(newTime);
     }
-  }, [isVisible, event]);
+  };
 
-  const handleSheetChanges = useCallback((index: number) => {
-    if (index === -1) {
-      onClose();
-    }
-  }, [onClose]);
+  const handleSelectCalendar = (option: string) => {
+    setSelectedCalendar(option);
+    setCalendarModalVisible(false);
+  };
 
-  const handleSave = useCallback(() => {
-    if (!currentEvent.title.trim()) {
-      Alert.alert('Error', 'Event title cannot be empty.');
-      return;
-    }
-    onSave(currentEvent);
-    onClose();
-  }, [currentEvent, onSave, onClose]);
+  const handleSelectReminder = (option: string) => {
+    setReminder(option);
+    setReminderModalVisible(false);
+  };
 
-  const handleCancel = useCallback(() => {
-    onClose();
-  }, [onClose]);
-
-  const handleTimeChange = useCallback((event: DateTimePickerEvent, selectedDate?: Date) => {
-    setShowTimePicker(null);
-    if (selectedDate) {
-      setCurrentEvent(prev => {
-        if (showTimePicker === 'start') {
-          return { ...prev, startTime: selectedDate };
-        } else if (showTimePicker === 'end') {
-          return { ...prev, endTime: selectedDate };
-        }
-        return prev;
-      });
-    }
-  }, [showTimePicker]);
-
-  const renderDetailRow = (iconName: keyof typeof MaterialCommunityIcons.glyphMap, label: string, value: string | React.ReactElement, onPress?: () => void) => (
-    <TouchableOpacity style={styles.detailRow} onPress={onPress} disabled={!onPress}>
-      <MaterialCommunityIcons name={iconName} size={24} color={Colors.labelIcon} style={styles.detailIcon} />
-      <View style={styles.detailTextContainer}>
-        <Text style={styles.detailLabel}>{label}</Text>
-        {typeof value === 'string' ? (
-          <Text style={styles.detailValue}>{value}</Text>
-        ) : (
-          value
-        )}
-      </View>
-      {onPress && <MaterialCommunityIcons name="chevron-right" size={20} color={Colors.labelIcon} />}
-    </TouchableOpacity>
-  );
+  const handleClose = () => {
+    closeModal();
+  };
 
   return (
-    <BottomSheetModalProvider>
-      <BottomSheetModal
-        ref={bottomSheetModalRef}
-        index={1}
-        snapPoints={snapPoints}
-        onChange={handleSheetChanges}
-        backgroundStyle={styles.bottomSheetBackground}
-        handleIndicatorStyle={styles.handleIndicator}
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={isVisible}
+      onRequestClose={handleClose}
+    >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoidingView}
       >
-        <BottomSheetView style={styles.contentContainer}>
-          <View style={styles.header}>
-            {isEditingTitle ? (
-              <TextInput
-                style={styles.headerTitleInput}
-                value={currentEvent.title}
-                onChangeText={(text) => setCurrentEvent(prev => ({ ...prev, title: text }))}
-                onBlur={() => setIsEditingTitle(false)}
-                autoFocus
-                placeholder="Add title"
-                placeholderTextColor={Colors.labelIcon}
-              />
-            ) : (
-              <TouchableOpacity onPress={() => setIsEditingTitle(true)} style={{ flex: 1 }}>
-                <Text style={styles.headerTitle} numberOfLines={1}>{currentEvent.title || "New Event"}</Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
-              <MaterialCommunityIcons name="check" size={24} color={Colors.primaryText} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleCancel} style={styles.closeButton}>
-              <MaterialCommunityIcons name="close" size={24} color={Colors.primaryText} />
-            </TouchableOpacity>
-          </View>
+        <Pressable style={styles.modalOverlay} onPress={handleClose}>
+          <Pressable>
+            <BlurView intensity={50} tint="dark" style={styles.modalContainer}>
+              <View style={styles.header}>
+                <Text style={styles.headerText}>New Event</Text>
+                <TouchableOpacity onPress={handleClose} style={styles.addButton}>
+                  <Text style={styles.addButtonText}>Add</Text>
+                </TouchableOpacity>
+              </View>
 
-          {renderDetailRow(
-            'clock-outline',
-            'Time',
-            `${moment(currentEvent.startTime).format('h:mm A')} → ${moment(currentEvent.endTime).format('h:mm A')}`,
-            () => setShowTimePicker('start')
-          )}
-          <View style={styles.separator} />
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.titleInput}
+                  placeholder="Title"
+                  placeholderTextColor="#8E8E93"
+                  value={title}
+                  onChangeText={setTitle}
+                />
+                <View style={styles.separator} />
+                <TextInput
+                  style={styles.locationInput}
+                  placeholder="Location or Video Call"
+                  placeholderTextColor="#8E8E93"
+                  value={location}
+                  onChangeText={setLocation}
+                />
+              </View>
 
-          {renderDetailRow(
-            'account-group-outline',
-            'Participants',
-            currentEvent.participants || 'Add',
-            () => Alert.alert('Coming Soon', 'Participant selection will be available soon')
-          )}
-          <View style={styles.separator} />
+              <View style={styles.switchContainer}>
+                <View style={styles.row}>
+                  <Ionicons name="time-outline" size={24} color="white" style={styles.icon} />
+                  <Text style={styles.label}>All-day</Text>
+                  <Switch
+                    value={isAllDay}
+                    onValueChange={setIsAllDay}
+                    trackColor={{ false: '#767577', true: '#81b0ff' }}
+                    thumbColor={isAllDay ? '#f4f3f4' : '#f4f3f4'}
+                  />
+                </View>
+                {!isAllDay && (
+                  <>
+                    <TouchableOpacity onPress={() => handleTimePress('start')}>
+                      <View style={[styles.row, styles.timeRow]}>
+                        <Text style={styles.label}>Starts</Text>
+                        <Text style={styles.timeText}>{startTime}</Text>
+                      </View>
+                    </TouchableOpacity>
+                    <View style={styles.separator} />
+                    <TouchableOpacity onPress={() => handleTimePress('end')}>
+                      <View style={[styles.row, styles.timeRow]}>
+                        <Text style={styles.label}>Ends</Text>
+                        <Text style={styles.timeText}>{endTime}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
 
-          {renderDetailRow(
-            'video-outline',
-            'Conferencing',
-            currentEvent.conferencing,
-            () => Alert.alert('Coming Soon', 'Conferencing options will be available soon')
-          )}
-          <View style={styles.separator} />
+              <View style={styles.selectionContainer}>
+                <TouchableOpacity onPress={() => setCalendarModalVisible(true)}>
+                  <View style={styles.row}>
+                    <Ionicons name="calendar-outline" size={24} color="white" style={styles.icon} />
+                    <Text style={styles.label}>Calendar</Text>
+                    <Text style={styles.selectedValue}>{selectedCalendar}</Text>
+                    <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
+                  </View>
+                </TouchableOpacity>
+                <View style={styles.separator} />
+                <TouchableOpacity onPress={() => setReminderModalVisible(true)}>
+                  <View style={styles.row}>
+                    <Ionicons name="notifications-outline" size={24} color="white" style={styles.icon} />
+                    <Text style={styles.label}>Reminder</Text>
+                    <Text style={styles.selectedValue}>{reminder}</Text>
+                    <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </BlurView>
+          </Pressable>
+        </Pressable>
+      </KeyboardAvoidingView>
 
-          {renderDetailRow(
-            'map-marker-outline',
-            'Location',
-            currentEvent.location,
-            () => Alert.alert('Coming Soon', 'Location picker will be available soon')
-          )}
-          <View style={styles.separator} />
+      {isTimePickerVisible && (
+        <CustomTimePicker
+          onClose={() => setTimePickerVisible(false)}
+          onTimeChange={handleTimeChange}
+          initialTime={timePickerTarget === 'start' ? startTime : endTime}
+        />
+      )}
 
-          {renderDetailRow(
-            'calendar-blank-outline',
-            'Calendar',
-            currentEvent.calendar,
-            () => Alert.alert('Coming Soon', 'Calendar selection will be available soon')
-          )}
-          <View style={styles.separator} />
+      <SelectionModal
+        isVisible={isCalendarModalVisible}
+        onClose={() => setCalendarModalVisible(false)}
+        onSelect={handleSelectCalendar}
+        options={calendarOptions}
+        title="Choose Calendar"
+      />
 
-          {renderDetailRow(
-            'bell-outline',
-            'Reminders',
-            currentEvent.reminders,
-            () => Alert.alert('Coming Soon', 'Reminder options will be available soon')
-          )}
-          <View style={styles.separator} />
-
-          {/* Description Field */}
-          <View style={styles.descriptionContainer}>
-            <TextInput
-              style={styles.descriptionInput}
-              placeholder="Add description"
-              placeholderTextColor={Colors.labelIcon}
-              multiline
-              value={currentEvent.description}
-              onChangeText={(text) => setCurrentEvent(prev => ({ ...prev, description: text }))}
-            />
-          </View>
-
-          {showTimePicker && (
-            <DateTimePicker
-              testID="dateTimePicker"
-              value={showTimePicker === 'start' ? currentEvent.startTime : currentEvent.endTime}
-              mode="time"
-              is24Hour={false}
-              display="default"
-              onChange={handleTimeChange}
-            />
-          )}
-
-        </BottomSheetView>
-      </BottomSheetModal>
-    </BottomSheetModalProvider>
+      <SelectionModal
+        isVisible={isReminderModalVisible}
+        onClose={() => setReminderModalVisible(false)}
+        onSelect={handleSelectReminder}
+        options={reminderOptions}
+        title="Set Reminder"
+      />
+    </Modal>
   );
-};
-
-const Colors = {
-  background: '#1C1C1E',
-  primaryText: '#FFFFFF',
-  labelIcon: '#8E8E93',
-  accent: '#007AFF',
-  separator: '#3A3A3C',
 };
 
 const styles = StyleSheet.create({
-  bottomSheetBackground: {
-    backgroundColor: Colors.background,
-  },
-  handleIndicator: {
-    backgroundColor: Colors.labelIcon,
-  },
-  contentContainer: {
+  keyboardAvoidingView: {
     flex: 1,
-    paddingHorizontal: 20,
-    backgroundColor: Colors.background,
+    justifyContent: 'flex-end',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    marginHorizontal: 8,
+    marginBottom: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.separator,
-    marginBottom: 10,
+    padding: 16,
+    backgroundColor: 'rgba(30, 30, 30, 0.8)',
   },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: Colors.primaryText,
-    flex: 1,
+  headerText: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: 'white',
   },
-  headerTitleInput: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: Colors.primaryText,
-    flex: 1,
-    paddingVertical: 0,
+  addButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
-  saveButton: {
-    padding: 5,
-    marginLeft: 10,
+  addButtonText: {
+    color: '#FFA500',
+    fontSize: 17,
+    fontWeight: '600',
   },
-  closeButton: {
-    padding: 5,
-    marginLeft: 10,
+  inputContainer: {
+    backgroundColor: 'rgba(40, 40, 40, 0.8)',
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginTop: 16,
   },
-  detailRow: {
+  titleInput: {
+    fontSize: 17,
+    color: 'white',
+    padding: 16,
+  },
+  locationInput: {
+    fontSize: 17,
+    color: 'white',
+    padding: 16,
+  },
+  switchContainer: {
+    backgroundColor: 'rgba(40, 40, 40, 0.8)',
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginTop: 24,
+    paddingHorizontal: 16,
+  },
+  selectionContainer: {
+    backgroundColor: 'rgba(40, 40, 40, 0.8)',
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginTop: 24,
+    paddingHorizontal: 16,
+  },
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 15,
+    paddingVertical: 14,
   },
-  detailIcon: {
-    marginRight: 15,
-  },
-  detailTextContainer: {
-    flex: 1,
-    flexDirection: 'row',
+  timeRow: {
     justifyContent: 'space-between',
-    alignItems: 'center',
   },
-  detailLabel: {
-    fontSize: 16,
-    color: Colors.labelIcon,
+  icon: {
+    marginRight: 16,
+  },
+  label: {
+    fontSize: 17,
+    color: 'white',
     flex: 1,
   },
-  detailValue: {
-    fontSize: 16,
-    color: Colors.primaryText,
-    textAlign: 'right',
-    flex: 2,
+  timeText: {
+    fontSize: 17,
+    color: '#FFA500',
+  },
+  selectedValue: {
+    fontSize: 17,
+    color: '#8E8E93',
+    marginRight: 8,
   },
   separator: {
-    height: 1,
-    backgroundColor: Colors.separator,
-    marginVertical: 5,
-  },
-  descriptionContainer: {
-    marginTop: 10,
-    marginBottom: 20,
-  },
-  descriptionInput: {
-    color: Colors.primaryText,
-    fontSize: 16,
-    minHeight: 80,
-    textAlignVertical: 'top',
-    padding: 10,
-    backgroundColor: Colors.separator,
-    borderRadius: 8,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#545458',
+    marginLeft: 56,
   },
 });
 
